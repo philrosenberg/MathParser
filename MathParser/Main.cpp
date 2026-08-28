@@ -126,13 +126,15 @@ int main()
 	functionFactories.set(sU("freeze"), std::make_unique<FreezeFunction::Factory>());
 	std::vector<sci::string> expressions
 	{
+		sU("4/2/2"),
+		sU("4^3^2"),
 		sU("27/2+1"),
-			sU("(27/2+1)"),
-			sU("27/(2+1)"),
-			sU("27/2+-1"),
-			sU("-27/2+1"),
-			sU("27/-2+1"),
-			sU("2*pi")
+		sU("(27/2+1)"),
+		sU("27/(2+1)"),
+		sU("27/2+-1"),
+		sU("-27/2+1"),
+		sU("27/-2+1"),
+		sU("2*pi")
 	};
 	for (size_t i = 0; i < expressions.size(); ++i)
 	{

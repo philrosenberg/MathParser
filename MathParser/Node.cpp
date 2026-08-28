@@ -214,9 +214,12 @@ std::array<sci::string, 3> splitExpression(const sci::string& expression)
 		return splitExpression(sU("(-1)*") + expression.substr(1));
 	}
 
-	//find positions of +/-, multiply and divide and power outside of any brackets
-	size_t multiplyIndex = -1;
-	size_t divideIndex = -1;
+	//find positions of +/-, multiply and divide and power outside of any brackets.
+	//The point we split on will be the last operation to be carried out in the expression
+	//So we want to any + or - (as they are commutative), or if there are none, the rightmost / or +,
+	//or if ther are none, the leftmost ^. note that a^b^c = a^(b^c), not (a^b)^c, which
+	//is the correct maths convention, but oposite to Excel and some other software.
+	size_t multiplyDivideIndex = -1;
 	size_t powerIndex = -1;
 	int bracketCount = 0;
 	int curlyBracketCount = 0;
@@ -262,19 +265,19 @@ std::array<sci::string, 3> splitExpression(const sci::string& expression)
 					expression.substr(i + 1)}; // always split on a +/- so return here
 			}
 		}
-		else if (isMultiply(expression[i]) && multiplyIndex == -1)
+		else if (isMultiply(expression[i]))
 		{
 			if (curlyBracketCount != 0)
 				return badResult;
-			multiplyIndex = i;
+			multiplyDivideIndex = i;
 		}
-		else if (isDivide(expression[i]) && divideIndex == -1)
+		else if (isDivide(expression[i]))
 		{
 			if (curlyBracketCount != 0)
 				return badResult;
-			divideIndex = i;
+			multiplyDivideIndex = i;
 		}
-		else if (isPower(expression[i]) && powerIndex == -1)
+		else if (isPower(expression[i]) && powerIndex == -1) //get the first, not last power
 		{
 			if (curlyBracketCount != 0)
 				return badResult;
@@ -283,15 +286,10 @@ std::array<sci::string, 3> splitExpression(const sci::string& expression)
 	}
 
 	//split on a multiply if we found one
-	if (multiplyIndex != -1)
-		return std::array<sci::string, 3>{expression.substr(0, multiplyIndex),
-		expression.substr(multiplyIndex, 1),
-		expression.substr(multiplyIndex + 1)};
-	//split on a divide if we found one
-	if (divideIndex != -1)
-		return std::array<sci::string, 3>{expression.substr(0, divideIndex),
-		expression.substr(divideIndex, 1),
-		expression.substr(divideIndex + 1)};
+	if (multiplyDivideIndex != -1)
+		return std::array<sci::string, 3>{expression.substr(0, multiplyDivideIndex),
+		expression.substr(multiplyDivideIndex, 1),
+		expression.substr(multiplyDivideIndex + 1)};
 	//split on a power if we found one
 	if (powerIndex != -1)
 		return std::array<sci::string, 3>{expression.substr(0, powerIndex),
