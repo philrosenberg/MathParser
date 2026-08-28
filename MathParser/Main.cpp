@@ -89,7 +89,8 @@ int main()
 
 	VariableStore variables;
 	FunctionMultiFactory functionFactories;
-	parseLine(sU("pi= 3.14"), true, badExpression, variables, functionFactories, output, isAssignment);
+	parseLine(sU("pi=3.14159265359"), true, badExpression, variables, functionFactories, output, isAssignment);
+	parseLine(sU("e=2.71828182845"), true, badExpression, variables, functionFactories, output, isAssignment);
 	functionFactories.set(sU("cos"), std::make_unique<EasyElementwiseFunction1Param<std::cos>::Factory>());
 	functionFactories.set(sU("sin"), std::make_unique<EasyElementwiseFunction1Param<std::sin>::Factory>());
 	functionFactories.set(sU("tan"), std::make_unique<EasyElementwiseFunction1Param<std::tan>::Factory>());
