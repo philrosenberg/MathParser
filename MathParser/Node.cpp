@@ -216,7 +216,7 @@ std::array<sci::string, 3> splitExpression(const sci::string& expression)
 
 	//find positions of +/-, multiply and divide and power outside of any brackets.
 	//The point we split on will be the last operation to be carried out in the expression
-	//So we want to any + or - (as they are commutative), or if there are none, the rightmost / or +,
+	//So we want to any + or - (as they are commutative), or if there are none, the rightmost / or *,
 	//or if ther are none, the leftmost ^. note that a^b^c = a^(b^c), not (a^b)^c, which
 	//is the correct maths convention, but oposite to Excel and some other software.
 	size_t multiplyDivideIndex = -1;
