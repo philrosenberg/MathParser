@@ -125,7 +125,7 @@ int main()
 	functionFactories.set(sU("rand2d"), std::make_unique<CachingFunction<3, rand2d>::Factory>());
 	functionFactories.set(sU("sum"), std::make_unique<CachingFunction<1, sum>::Factory>());
 	functionFactories.set(sU("freeze"), std::make_unique<FreezeFunction::Factory>());
-	std::vector<sci::string> expressions
+	/*std::vector<sci::string> expressions
 	{
 		sU("4/2/2"),
 		sU("4^3^2"),
@@ -146,7 +146,7 @@ int main()
 			std::cout << "Result: error " << basicAscii(badExpression) << std::endl;
 		else
 			std::cout << "Result: " << basicAscii(output) << std::endl;
-	}
+	}*/
 
 	beginConsoleLoop(variables, functionFactories);
 
