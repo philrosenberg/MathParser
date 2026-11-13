@@ -36,7 +36,7 @@ public:
 		return result;
 	}
 
-	bool isValid() const
+	constexpr bool isValid() const
 	{
 		for (auto s : m_shape)
 			if (s == 0)
@@ -45,7 +45,7 @@ public:
 	}
 
 	index getShape() const;
-	double getValue(const index& position) const
+	constexpr double getValue(const index& position) const
 	{
 		return m_op(m_function.get(), &m_constant, m_shape, m_nodes, position);
 	}

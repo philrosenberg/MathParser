@@ -4,72 +4,72 @@
 #include"Parse.h"
 
 
-bool isOpenBracket(schar c)
+constexpr bool isOpenBracket(schar c)
 {
 	return c == sU('(');
 }
 
-bool isCloseBracket(schar c)
+constexpr bool isCloseBracket(schar c)
 {
 	return c == sU(')');
 }
 
-bool isOpenCurlyBracket(schar c)
+constexpr bool isOpenCurlyBracket(schar c)
 {
 	return c == sU('{');
 }
 
-bool isComma(schar c)
+constexpr bool isComma(schar c)
 {
 	return c == sU(',');
 }
 
-bool isCloseCurlyBracket(schar c)
+constexpr bool isCloseCurlyBracket(schar c)
 {
 	return c == sU('}');
 }
 
-bool isOperator(schar c)
+constexpr bool isOperator(schar c)
 {
 	return c == sU('+') || c == sU('-') || c == sU('*') || c == sU('/') || c == sU('*');
 }
 
-bool isPlusMinus(schar c)
+constexpr bool isPlusMinus(schar c)
 {
 	return c == sU('+') || c == sU('-');
 }
 
-bool isPlus(schar c)
+constexpr bool isPlus(schar c)
 {
 	return c == sU('+');
 }
 
-bool isMinus(schar c)
+constexpr bool isMinus(schar c)
 {
 	return c == sU('-');
 }
 
-bool isMultiply(schar c)
+constexpr bool isMultiply(schar c)
 {
 	return c == sU('*');
 }
 
-bool isDivide(schar c)
+constexpr bool isDivide(schar c)
 {
 	return c == sU('/');
 }
 
-bool isPower(schar c)
+constexpr bool isPower(schar c)
 {
 	return c == sU('^');
 }
 
-bool isExp(schar c)
+constexpr bool isExp(schar c)
 {
 	return c == sU('e') || c == sU('E');
 }
 
-bool isWhiteSpace(schar c)
+constexpr bool isWhiteSpace(schar c)
 {
 	return c == sU(' ') || c == sU('\t');
 }
@@ -175,7 +175,7 @@ size_t findCloseBracket(const sci::string& expression, size_t openBracketIndex)
 	return -1;
 }
 
-std::array<sci::string, 3> splitExpression(const sci::string& expression)
+constexpr std::array<sci::string, 3> splitExpression(const sci::string& expression)
 {
 	std::array<sci::string, 3> result;
 	const std::array<sci::string, 3> badResult{ sU(""), sU(""), sU("")};
