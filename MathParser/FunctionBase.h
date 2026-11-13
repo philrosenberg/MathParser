@@ -73,6 +73,7 @@ public:
 			return std::unique_ptr<Function>(factoryIter->second->makeInstance());
 		return nullptr;
 	}
+	bool addStandardFunctions();
 private:
 	std::unordered_map<sci::string, std::unique_ptr<FunctionFactory>> m_factories;
 };
