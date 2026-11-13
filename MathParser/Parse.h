@@ -1,9 +1,137 @@
 #pragma once
 #include"FunctionBase.h"
 #include"VariableStore.h"
+#include<iostream>
+#include<scieng/codepage.h>
 
-bool parseLine(const sci::string& line, bool skipOutputCalculation, sci::string& badLine, VariableStore& variables, const FunctionMultiFactory& functions, sci::string& output, bool &isAssignment);
-bool parseExpression(const sci::string& line, sci::string& badLine, const VariableStore& variables, const FunctionMultiFactory& functions, Node& output);
-std::string basicAscii(const sci::string& str);
-sci::string basicUnicode(const std::string& str);
-void beginConsoleLoop(VariableStore& variables, FunctionMultiFactory& functionFactories);
+//parse a line
+//if the line contains one equals sign, the variable will be put in the variableDestination if the expression is valid and variableDestination is not null, isAssignment will be set true, the return of node.set will be returned if variableDestination is not null or false otherwise
+//if the line contains zero equals signs, the node will be set to the expression if it is valid, isAssignment will be set false, the return of node.set will be returned
+//if the line contains more than one equals, isAssignment will be set to false, false will be returned.
+//There is a source and destination VariableStore. This is to allow expressions to be parsed using a const VariableStore if needed
+template<class VariableStore>
+bool parseLine(const sci::string& line, sci::string& badLine, VariableStore* variableDestination, const VariableStore& variableSource, const FunctionMultiFactory<VariableStore>& functions, typename VariableStore::node& node, bool& isAssignment)
+{
+	isAssignment = false;
+
+	//remove whitespace and check for equals
+	sci::string trimmedLine;
+	trimmedLine.reserve(line.size());
+	size_t equalsIndex = -1;
+	size_t equalsCount = 0;
+	for (auto c : line)
+	{
+		if (c != sU(' ') && c != sU('\t'))
+			trimmedLine.push_back(c);
+		if (c == sU('='))
+		{
+			equalsIndex = trimmedLine.size() - 1;
+			equalsCount++;
+		}
+	}
+	if (equalsCount > 1)
+	{
+		//If there is more than 1 equals sign - this is a bad line
+		badLine = trimmedLine;
+		return false;
+	}
+	if (equalsCount == 0)
+	{
+		//If there is no equals sign, calculate the result of the expression and print it
+		return node.set(line, badLine, variableSource, functions);
+	}
+	else
+	{
+		//If there is one equals sign, set the variable
+		isAssignment = true;
+		if (!variableDestination)
+			return false;
+		sci::string name = trimmedLine.substr(0, equalsIndex);
+		sci::string expr = trimmedLine.substr(equalsIndex + 1);
+		bool result = variableDestination->getOrCreateVariable(name)->set(expr, badLine, variableSource, functions);
+		if (!result)
+			variableDestination->removeVariable(name);
+		return result;
+	}
+}
+
+template<class VariableStore>
+bool parseLine(const sci::string& line, bool skipOutputCalculation, sci::string& badLine, VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions, sci::string& output, bool& isAssignment)
+{
+	output = sU("");
+	typename VariableStore::node node;
+	isAssignment = false;
+	bool result = parseLine(line, badLine, &variables, variables, functions, node, isAssignment);
+	if (!result)
+		return false;
+	if (!isAssignment && !skipOutputCalculation)
+	{
+		sci::ostringstream str;
+		typename VariableStore::node::index shape = node.getShape();
+		if (VariableStore::node::getSizeFromShape(shape) == 0) // zero dimensions. Error
+			str << sU("zero_size_error");
+		else if (VariableStore::node::getSizeFromShape(shape) == 1)  // scalar
+			str << node.calculate()[0][0];
+		else if (shape[0] == 1) //row
+		{
+			str << sU("{ ") << node.getValue({ 0,0 });
+			for (size_t i = 1; i < shape[1]; ++i)
+				str << sU(", ") << node.getValue({ 0, i });
+			str << sU(" }");
+		}
+		else if (shape[1] == 1) //col
+		{
+			str << sU("{ ") << node.getValue({ 0,0 });
+			for (size_t i = 1; i < shape[0]; ++i)
+				str << sU(", ") << node.getValue({ i, 0 });
+			str << sU(" }");
+		}
+		else
+		{
+			str << sU("{ ");
+			for (size_t i = 0; i < shape[0]; ++i)
+			{
+				str << sU("{ ") << node.getValue({ i, 0 });
+				for (size_t j = 1; j < shape[1]; ++j)
+					str << sU(", ") << node.getValue({ i,j });
+				str << sU(" } ");
+			}
+			str << sU("}");
+		}
+
+		output = str.str();
+	}
+	return result;
+}
+
+template<class VariableStore>
+bool parseExpression(const sci::string& line, sci::string& badLine, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions, typename VariableStore::node& output)
+{
+	bool isAssignment = false;
+	return parseLine(line, badLine, (VariableStore*)nullptr, variables, functions, output, isAssignment);
+}
+
+template<class VariableStore>
+void beginConsoleLoop(VariableStore& variables, FunctionMultiFactory<VariableStore>& functionFactories)
+{
+	std::string line;
+	sci::string output;
+	sci::string badExpression;
+	bool isAssignment;
+	while (1)
+	{
+		std::cout << "math> ";
+		std::getline(std::cin, line);
+		if (line == "exit")
+			break;
+		bool good = parseLine(sci::toSci(line), false, badExpression, variables, functionFactories, output, isAssignment);
+		if (output.length() > 0)
+		{
+			std::cout << sci::toCodepage(output) << "\n";
+		}
+		if (!good)
+		{
+			std::cout << "Bad expression: " << sci::toCodepage(badExpression) << "\n";
+		}
+	};
+}

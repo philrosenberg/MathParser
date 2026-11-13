@@ -1,15 +1,18 @@
 #pragma once
 #include"types.h"
 #include<forward_list>
+#include"Node.h"
 
-class Node;
+template<class VariableStore>
 class FunctionMultiFactory;
-using dict = std::unordered_map<sci::string, Node*>;
 
+template<int nDims>
 class VariableStore
 {
 public:
-	Node* getVariable(sci::string variableName) const
+	using node = Node<nDims>;
+	using dict = std::unordered_map<sci::string, Node<nDims>*>;
+	node* getVariable(sci::string variableName) const
 	{
 		auto result = m_variables.find(variableName);
 		if (result == m_variables.end())
@@ -17,7 +20,20 @@ public:
 		else
 			return result->second;
 	}
-	Node* getOrCreateVariable(sci::string variableName);
+	node* getOrCreateVariable(sci::string variableName)
+	{
+		auto result = m_variables.find(variableName);
+		if (result != m_variables.end())
+			return result->second;
+		else
+		{
+			m_nodes.push_front(node());
+			auto nodeIt = m_nodes.begin();
+			node* nodePtr = &*nodeIt;
+			m_variables.insert(std::make_pair(variableName, nodePtr));
+			return nodePtr;
+		}
+	}
 	void removeVariable(sci::string variableName)
 	{
 		auto variable = m_variables.find(variableName);
@@ -25,7 +41,7 @@ public:
 			m_variables.erase(variable);
 	}
 private:
-	std::forward_list<Node> m_nodes;
+	std::forward_list<node> m_nodes;
 	dict m_variables;
 
 };

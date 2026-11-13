@@ -3,8 +3,11 @@
 #include"types.h"
 #include<array>
 
+template<int nDims>
 class VariableStore;
+template<class VariableStore>
 class FunctionMultiFactory;
+template<int nDims>
 class Node;
 
 //A function is written in C++ and is very flexible
@@ -33,10 +36,13 @@ class Node;
 //in one go, cached and then regurgitated as requested.
 //Don't do this unless you need to. It is usually slower
 //due to the increased iteration over memory.
+
+template<class VariableStore>
 class Function
 {
 public:
-	virtual bool setInputs(const sci::string inputs, sci::string& badExpression, const VariableStore& variables, const FunctionMultiFactory& functions) = 0;
+	using index = typename VariableStore::node::index;
+	virtual bool setInputs(const sci::string inputs, sci::string& badExpression, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions) = 0;
 	virtual index getShapeAndCacheIfNeeded() const = 0;
 	virtual double getValue(const index& position) const = 0;
 	virtual ~Function()
@@ -47,33 +53,35 @@ public:
 //Function classes. Make a matching one for
 //each function you write. The Function Factory
 //must be copyable.
+template<class VariableStore>
 class FunctionFactory
 {
 public:
-	virtual Function* makeInstance() const = 0;
+	virtual Function<VariableStore>* makeInstance() const = 0;
 };
 
 //A FunctionMultifactory holds unique pointers to each FunctionFactory with the key being the name
 // of the functon. You use it to grab the FunctionFactory to make a function instance from the function
 //name. 
+template<class VariableStore>
 class FunctionMultiFactory
 {
 public:
-	bool set(const sci::string& name, std::unique_ptr<FunctionFactory> functionFactory)
+	bool set(const sci::string& name, std::unique_ptr<FunctionFactory<VariableStore>> functionFactory)
 	{
 		m_factories[name] = std::move(functionFactory);
 		return true;
 	}
-	std::unique_ptr<Function> getFunction(sci::string functionName) const
+	std::unique_ptr<Function<VariableStore>> getFunction(sci::string functionName) const
 	{
 		auto factoryIter = m_factories.find(functionName);
 		if (factoryIter == m_factories.end())
 			return nullptr;
 		else
-			return std::unique_ptr<Function>(factoryIter->second->makeInstance());
+			return std::unique_ptr<Function<VariableStore>>(factoryIter->second->makeInstance());
 		return nullptr;
 	}
 	bool addStandardFunctions();
 private:
-	std::unordered_map<sci::string, std::unique_ptr<FunctionFactory>> m_factories;
+	std::unordered_map<sci::string, std::unique_ptr<FunctionFactory<VariableStore>>> m_factories;
 };
