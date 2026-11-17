@@ -21,13 +21,23 @@ public:
 	friend bool parseLine< VariableStore<nDims>>(const sci::string& line, sci::string& badLine, VariableStore<nDims>* variableDestination, const VariableStore<nDims>& variableSource, const FunctionMultiFactory<VariableStore<nDims>>& functions, Node& node, bool& isAssignment);
 	friend class VariableStore<nDims>;
 	Node()
+		:m_function(nullptr)
 	{
-		m_function = nullptr;
 		m_op = &nullOperator<VariableStore<nDims>>;
 		for (auto& n : m_nodes)
 			n = nullptr;
 		for (auto& s : m_shape)
 			s = 0;
+	}
+
+	constexpr bool contains(const Node* other) const
+	{
+		for (const auto& n : m_nodes)
+		{
+			if (n != nullptr && (n == other || n->contains(other)))
+				return true;
+		}
+		return false;
 	}
 
 	variable calculate() const
@@ -91,6 +101,11 @@ private:
 		if (split[0].empty())
 		{
 			//this is a zero sized variable - we can allow this
+			m_ownedNodes[0].reset(nullptr);
+			m_ownedNodes[1].reset(nullptr);
+			m_nodes[0] = nullptr;
+			m_nodes[1] = nullptr;
+			m_function.reset(nullptr);
 			m_constant.reshape({ 0,0 });
 			m_op = constantRead;
 			return true;
@@ -119,7 +134,9 @@ private:
 				}
 				bool success = m_function->setInputs(functionParameters, badExpression, variables, functions);
 				if (!success)
+				{
 					return false;
+				}
 				m_op = runFunction;
 				return true;
 			}
@@ -132,7 +149,9 @@ private:
 				if (result)
 					m_op = constantRead;
 				else
+				{
 					badExpression = split[0];
+				}
 				return result;
 			}
 
@@ -164,8 +183,23 @@ private:
 			}
 			m_nodes[0] = node;
 			m_op = nodePassthrough;
-			return true;
 
+			//check for infinite looping
+			//This should catch all cases.
+			//e.g.
+			//x=2
+			//y=x+1
+			//x=y+1
+			//when parsing x=y+1, we eventually will parse just y in this coe section
+			//by with point the y node, contains x and the x node contains y, so the
+			//loop is caught
+			if (contains(this))
+			{
+				badExpression = expression;
+				return false;
+			}
+
+			return true;
 		}
 		else if (split[2].empty())
 		{
@@ -183,10 +217,24 @@ private:
 			m_op = getOp<VariableStore<nDims>>(split[1]);
 			m_ownedNodes[0]->set(split[0], badExpression, variables, functions);
 			if (!badExpression.empty())
+			{
 				return false;
+			}
 			m_ownedNodes[1]->set(split[2], badExpression, variables, functions);
 			if (!badExpression.empty())
+			{
 				return false;
+			}
+
+			//check for infinite looping - I suspect this check isn't needed
+			//as the check above when we just have a variable should always catch
+			//an infinite loop. But It's here just in case a logic change means the
+			//check above no longer catches all cases.
+			if (contains(this))
+			{
+				badExpression = expression;
+				return false;
+			}
 		}
 		return true;
 	}

@@ -48,9 +48,14 @@ bool parseLine(const sci::string& line, sci::string& badLine, VariableStore* var
 			return false;
 		sci::string name = trimmedLine.substr(0, equalsIndex);
 		sci::string expr = trimmedLine.substr(equalsIndex + 1);
-		bool result = variableDestination->getOrCreateVariable(name)->set(expr, badLine, variableSource, functions);
+
+		auto variable = variableDestination->getOrCreateVariable(name);
+		bool result = variable->set(expr, badLine, variableSource, functions);
 		if (!result)
-			variableDestination->removeVariable(name);
+		{
+			sci::string tempString;
+			variable->set(sU(""), tempString, variableSource, functions);
+		}
 		return result;
 	}
 }
@@ -69,7 +74,11 @@ bool parseLine(const sci::string& line, bool skipOutputCalculation, sci::string&
 		sci::ostringstream str;
 		typename VariableStore::node::index shape = node.getShape();
 		if (VariableStore::node::getSizeFromShape(shape) == 0) // zero dimensions. Error
+		{
+			badLine = line;
 			str << sU("zero_size_error");
+			return false;
+		}
 		else if (VariableStore::node::getSizeFromShape(shape) == 1)  // scalar
 			str << node.calculate()[0][0];
 		else if (shape[0] == 1) //row

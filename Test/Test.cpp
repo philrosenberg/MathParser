@@ -26,6 +26,23 @@ bool test(sci::string expression, sci::string expectedResult, VariableStore<N> &
 	return true;
 }
 
+template<int N>
+bool testFails(sci::string expression, VariableStore<N>& variables, FunctionMultiFactory<VariableStore<N>>& functionFactories)
+{
+	sci::string badExpression;
+	sci::string output;
+	bool isAssignment;
+	bool parsed;
+
+	parsed = parseLine(expression, false, badExpression, variables, functionFactories, output, isAssignment);
+	if (parsed)
+	{
+		std::cout << "The expression " << sci::toCodepage(expression) << " parsed. When it should not have." << std::endl;
+		return false;
+	}
+	return true;
+}
+
 int main()
 {
 	const int nDims = 2;
@@ -54,6 +71,33 @@ int main()
 	success &= test(sU("-3^2"), sU("-9"), variables, functionFactories);
 	success &= test(sU("0-3^2"), sU("-9"), variables, functionFactories);
 	success &= test(sU("(-3)^2"), sU("9"), variables, functionFactories);
+
+	//Check direct infinite loops get caught
+	success &= testFails(sU("x=x"), variables, functionFactories);
+	success &= testFails(sU("x=1+x"), variables, functionFactories);
+	success &= testFails(sU("x=x+1"), variables, functionFactories);
+
+	//Check indirect infinite loops get caught
+	success &= test(sU("x=2"), sU(""), variables, functionFactories);
+	success &= test(sU("y=x+1"), sU(""), variables, functionFactories);
+	success &= testFails(sU("x=y+1"), variables, functionFactories);
+
+	//Check indirect infinite loops get caught with the variable second
+	success &= test(sU("x=2"), sU(""), variables, functionFactories);
+	success &= test(sU("y=x+1"), sU(""), variables, functionFactories);
+	success &= testFails(sU("x=1+y"), variables, functionFactories);
+
+	//check an expression ending in an operator gets caught
+	success &= testFails(sU("x=2+"), variables, functionFactories);
+	
+	//check what happens when a used variable gets set to bad expression
+	success &= test(sU("x=2"), sU(""), variables, functionFactories);
+	success &= test(sU("y=x+1"), sU(""), variables, functionFactories);
+	success &= testFails(sU("x=3+"), variables, functionFactories); //x should now have been removed
+	success &= testFails(sU("y"), variables, functionFactories);
+
+
+
 
 	if (success)
 		std::cout << "All tests passed" << std::endl;

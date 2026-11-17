@@ -34,12 +34,14 @@ public:
 			return nodePtr;
 		}
 	}
-	void removeVariable(sci::string variableName)
+	//There is currently no way to safely remove variables without
+	// leaving dangling pointers, so we don't do it
+	/*void removeVariable(sci::string variableName)
 	{
 		auto variable = m_variables.find(variableName);
 		if (variable != m_variables.end())
 			m_variables.erase(variable);
-	}
+	}*/
 private:
 	std::forward_list<node> m_nodes;
 	dict m_variables;
