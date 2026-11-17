@@ -1,7 +1,6 @@
 #pragma once
 #include"FunctionBase.h"
 #include"Node.h"
-#include"Parse.h"
 
 //this is a function which accepts N expressions, each separated by a comma. Each expression will be converted to a node
 template<size_t N, class VariableStore>

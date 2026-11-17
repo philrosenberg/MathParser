@@ -1,5 +1,5 @@
 #pragma once
-#include"FunctionBase.h"
+#include"Function.h"
 #include"VariableStore.h"
 #include<iostream>
 #include<scieng/codepage.h>

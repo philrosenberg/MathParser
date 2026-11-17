@@ -434,6 +434,7 @@ private:
 		//is the correct maths convention, but oposite to Excel and some other software.
 		size_t multiplyDivideIndex = -1;
 		size_t powerIndex = -1;
+		size_t addSubtractIndex = -1;
 		int bracketCount = 0;
 		int curlyBracketCount = 0;
 		for (size_t i = 0; i < expression.length(); ++i)
@@ -473,9 +474,7 @@ private:
 				{
 					if (curlyBracketCount != 0)
 						return badResult;
-					return std::array<sci::string, 3>{expression.substr(0, i),
-						expression.substr(i, 1),
-						expression.substr(i + 1)}; // always split on a +/- so return here
+					addSubtractIndex = i;
 				}
 			}
 			else if (isMultiply(expression[i]))
@@ -497,7 +496,11 @@ private:
 				powerIndex = i;
 			}
 		}
-
+		//split on an add or subtract if we found one
+		if(addSubtractIndex != -1)
+			return std::array<sci::string, 3>{expression.substr(0, addSubtractIndex),
+				expression.substr(addSubtractIndex, 1),
+				expression.substr(addSubtractIndex + 1)};
 		//split on a multiply if we found one
 		if (multiplyDivideIndex != -1)
 			return std::array<sci::string, 3>{expression.substr(0, multiplyDivideIndex),
