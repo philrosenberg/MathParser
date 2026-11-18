@@ -19,16 +19,40 @@ bool parseLine(const sci::string& line, sci::string& badLine, sci::string &error
 	trimmedLine.reserve(line.size());
 	size_t equalsIndex = -1;
 	size_t equalsCount = 0;
-	for (auto c : line)
+	bool addedSpaceLast = false;
+	bool addedNonSpace = false;
+	for(size_t i=0; i<line.length(); ++i)
 	{
-		if (c != sU(' ') && c != sU('\t'))
-			trimmedLine.push_back(c);
-		if (c == sU('='))
+		//if it's not a space, add it to the trimmed line
+		if (line[i] != sU(' ') && line[i] != sU('\t'))
+		{
+			trimmedLine.push_back(line[i]);
+			addedNonSpace = true;
+			addedSpaceLast = false;
+		}
+		//if it's a space, but not next to any disallowed variable characters also add it
+		//and there has been at least one non-space added, then add it. But not more than
+		//one consecutively
+		else if (i != line.length() - 1 && i != 0 && !addedSpaceLast && addedNonSpace &&
+			VariableStore::getDisallowedCharacters().find(line[i - 1]) == sci::string::npos &&  //to the left is a variable character
+			(VariableStore::getDisallowedCharacters().find(line[i + 1]) == sci::string::npos || // (to the right is a variable character
+			line[i + 1] == sU(' ') || line[i + 1] == sU('\t')))                                 // or a space)
+		{
+			trimmedLine.push_back(line[i]);
+			addedSpaceLast = true;
+		}
+
+
+		if (line[i] == sU('='))
 		{
 			equalsIndex = trimmedLine.size() - 1;
 			equalsCount++;
 		}
 	}
+	//there could be a single trailing space, remove it if so
+	if (trimmedLine.back() == sU(' ') || trimmedLine.back() == sU('\t'))
+		trimmedLine.erase(trimmedLine.end() - 1);
+
 	if (equalsCount > 1)
 	{
 		//If there is more than 1 equals sign - this is a bad line

@@ -62,6 +62,8 @@ int main()
 	functionFactories.addStandardFunctions();
 
 	bool success = true;
+	success &= testFails(sU("my  variable=5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
+
 	success &= test(sU("8-4-2"), sU("2"), variables, functionFactories);
 	success &= test(sU("8+4-2"), sU("10"), variables, functionFactories);
 	success &= test(sU("8/2/2"), sU("2"), variables, functionFactories);
@@ -122,7 +124,7 @@ int main()
 	//check other errors are generated correctly
 	success &= testFails(sU("sin(1"), sU("sin(1"), sU("missing_function_close_bracket_error"), variables, functionFactories);
 	success &= testFails(sU("notafunction()"), sU("notafunction()"), sU("function_not_found_error"), variables, functionFactories);
-	success &= testFails(sU("sin(1, 1)"), sU("sin(1, 1)"), sU("incorrect_number_of_function_arguments_error"), variables, functionFactories);
+	success &= testFails(sU("sin(1,1)"), sU("sin(1,1)"), sU("incorrect_number_of_function_arguments_error"), variables, functionFactories);
 	success &= testFails(sU("{1.2,1.2"), sU("{1.2,1.2"), sU("missing_array_close_bracket_error"), variables, functionFactories);
 	success &= testFails(sU("1.2,1.2}"), sU("1.2,1.2}"), sU("missing_array_open_bracket_error"), variables, functionFactories);
 	success &= testFails(sU("{1.2,1.2a}"), sU("1.2a"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
@@ -137,8 +139,14 @@ int main()
 	success &= testFails(sU("x={(2}+1)*5"), sU("{(2}+1)"), sU("missing_close_bracket_error"), variables, functionFactories);
 	success &= testFails(sU("x=({2)+1}*5"), sU("({2)+1}"), sU("missing_close_bracket_error"), variables, functionFactories);
 	success &= testFails(sU("=5"), sU(""), sU("invalid_characters_before_equals_error"), variables, functionFactories);
-	success &= testFails(sU("my variable=5"), sU(""), sU("invalid_characters_before_equals_error"), variables, functionFactories);
-	
+	success &= testFails(sU("7=7"), sU("7"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
+	success &= testFails(sU("my variable=5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
+	//check whitesapce removal
+	success &= testFails(sU(" my variable=5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
+	success &= testFails(sU("my  variable=5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
+	success &= testFails(sU("my variable =5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
+	success &= testFails(sU("my+ variable=5"), sU("my+variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
+	success &= testFails(sU("my +variable=5"), sU("my+variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 
 	//check functtion calls with commas not separating arguments
 	success &= test(sU("x=sin({1,1})"), sU(""), variables, functionFactories);
@@ -150,8 +158,8 @@ int main()
 	success &= testFails(sU("{1,}"), sU("{1,}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
 	success &= testFails(sU("{1,2}{3}"), sU("{3}"), sU("array_2nd_dimension_sizes_do_not_match_error"), variables, functionFactories);
 	success &= test(sU("x={1,2}{3,4}"), sU(""), variables, functionFactories);
-	success &= test(sU("x={1,2}{3,4}"), sU(""), variables, functionFactories);
 	success &= testFails(sU("x={{1,2},{3,4}}"), sU(","), sU("unexpected_character_between_array_brackets_error"), variables, functionFactories);
+	success &= testFails(sU("x={{1,2},{3,4}"), sU(","), sU("missing_array_close_bracket_error"), variables, functionFactories);
 	success &= testFails(sU("x={1,2},{3,4}"), sU(",{3,4}"), sU("unexpected_characters_after_array_error"), variables, functionFactories);
 	success &= testFails(sU("{1,2}noOperator"), sU("noOperator"), sU("unexpected_characters_after_array_error"), variables, functionFactories);
 
