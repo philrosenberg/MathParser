@@ -22,6 +22,8 @@ public:
 	}
 	node* getOrCreateVariable(sci::string variableName)
 	{
+		if (!checkValidVariableName(variableName))
+			return nullptr;
 		auto result = m_variables.find(variableName);
 		if (result != m_variables.end())
 			return result->second;
@@ -33,6 +35,11 @@ public:
 			m_variables.insert(std::make_pair(variableName, nodePtr));
 			return nodePtr;
 		}
+	}
+	static bool checkValidVariableName(const sci::string & name)
+	{
+		const sci::string invalidCharacters(sU("+-*/(){},^"));
+		return name.find_first_of(invalidCharacters) == sci::string::npos;
 	}
 	//There is currently no way to safely remove variables without
 	// leaving dangling pointers, so we don't do it

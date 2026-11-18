@@ -42,7 +42,7 @@ class Function
 {
 public:
 	using index = typename VariableStore::node::index;
-	virtual bool setInputs(const sci::string inputs, sci::string& badExpression, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions) = 0;
+	virtual bool setInputs(const sci::string inputs, sci::string& badExpression, sci::string &error, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions) = 0;
 	virtual index getShapeAndCacheIfNeeded() const = 0;
 	virtual double getValue(const index& position) const = 0;
 	virtual ~Function()

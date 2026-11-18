@@ -10,7 +10,7 @@
 //if the line contains more than one equals, isAssignment will be set to false, false will be returned.
 //There is a source and destination VariableStore. This is to allow expressions to be parsed using a const VariableStore if needed
 template<class VariableStore>
-bool parseLine(const sci::string& line, sci::string& badLine, VariableStore* variableDestination, const VariableStore& variableSource, const FunctionMultiFactory<VariableStore>& functions, typename VariableStore::node& node, bool& isAssignment)
+bool parseLine(const sci::string& line, sci::string& badLine, sci::string &error, VariableStore* variableDestination, const VariableStore& variableSource, const FunctionMultiFactory<VariableStore>& functions, typename VariableStore::node& node, bool& isAssignment)
 {
 	isAssignment = false;
 
@@ -32,29 +32,43 @@ bool parseLine(const sci::string& line, sci::string& badLine, VariableStore* var
 	if (equalsCount > 1)
 	{
 		//If there is more than 1 equals sign - this is a bad line
+		error = sU("more_than_one_equals_error");
 		badLine = trimmedLine;
 		return false;
 	}
 	if (equalsCount == 0)
 	{
 		//If there is no equals sign, calculate the result of the expression and print it
-		return node.set(line, badLine, variableSource, functions);
+		return node.set(line, badLine, error, variableSource, functions);
 	}
 	else
 	{
 		//If there is one equals sign, set the variable
 		isAssignment = true;
 		if (!variableDestination)
+		{
+			error = sU("no_variable_store_provided_error");
+			badLine = trimmedLine;
 			return false;
+		}
 		sci::string name = trimmedLine.substr(0, equalsIndex);
 		sci::string expr = trimmedLine.substr(equalsIndex + 1);
 
-		auto variable = variableDestination->getOrCreateVariable(name);
-		bool result = variable->set(expr, badLine, variableSource, functions);
+		typename VariableStore::node* variable = variableDestination->getOrCreateVariable(name);
+		if (!variable)
+		{
+			error = sU("invalid_characters_before_equals_error");
+			badLine = name;
+			return false;
+		}
+		bool result = variable->set(expr, badLine, error, variableSource, functions);
 		if (!result)
 		{
-			sci::string tempString;
-			variable->set(sU(""), tempString, variableSource, functions);
+			if (badLine.empty())
+				badLine = trimmedLine;
+			sci::string tempString1;
+			sci::string tempString2;
+			variable->set(sU(""), tempString1, tempString2, variableSource, functions);
 		}
 		return result;
 	}
@@ -66,7 +80,7 @@ bool parseLine(const sci::string& line, bool skipOutputCalculation, sci::string&
 	output = sU("");
 	typename VariableStore::node node;
 	isAssignment = false;
-	bool result = parseLine(line, badLine, &variables, variables, functions, node, isAssignment);
+	bool result = parseLine(line, badLine, output, &variables, variables, functions, node, isAssignment);
 	if (!result)
 		return false;
 	if (!isAssignment && !skipOutputCalculation)
@@ -76,7 +90,7 @@ bool parseLine(const sci::string& line, bool skipOutputCalculation, sci::string&
 		if (VariableStore::node::getSizeFromShape(shape) == 0) // zero dimensions. Error
 		{
 			badLine = line;
-			str << sU("zero_size_error");
+			output = sU("empty_variable_error");
 			return false;
 		}
 		else if (VariableStore::node::getSizeFromShape(shape) == 1)  // scalar
@@ -113,11 +127,15 @@ bool parseLine(const sci::string& line, bool skipOutputCalculation, sci::string&
 	return result;
 }
 
+//this parses an expression, not a full line. It will generate an error if the expression contains an assignment
 template<class VariableStore>
-bool parseExpression(const sci::string& line, sci::string& badLine, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions, typename VariableStore::node& output)
+bool parseExpression(const sci::string& line, sci::string& badLine, sci::string &error, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions, typename VariableStore::node& output)
 {
 	bool isAssignment = false;
-	return parseLine(line, badLine, (VariableStore*)nullptr, variables, functions, output, isAssignment);
+	bool result = parseLine(line, badLine, error, (VariableStore*)nullptr, variables, functions, output, isAssignment);
+	if (result && isAssignment)
+		error = sU("expression_contained_unexpected_assignment_error");
+	return result && isAssignment;
 }
 
 template<class VariableStore>

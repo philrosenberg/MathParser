@@ -27,7 +27,7 @@ bool test(sci::string expression, sci::string expectedResult, VariableStore<N> &
 }
 
 template<int N>
-bool testFails(sci::string expression, VariableStore<N>& variables, FunctionMultiFactory<VariableStore<N>>& functionFactories)
+bool testFails(sci::string expression, sci::string expectedBadExpression, sci::string expectedError, VariableStore<N>& variables, FunctionMultiFactory<VariableStore<N>>& functionFactories)
 {
 	sci::string badExpression;
 	sci::string output;
@@ -38,6 +38,16 @@ bool testFails(sci::string expression, VariableStore<N>& variables, FunctionMult
 	if (parsed)
 	{
 		std::cout << "The expression " << sci::toCodepage(expression) << " parsed. When it should not have." << std::endl;
+		return false;
+	}
+	if (badExpression != expectedBadExpression)
+	{
+		std::cout << "The expression " << sci::toCodepage(expression) << " was correctly rejected, but the bad expression was " << sci::toCodepage(badExpression) << " when it was expected to have been " << sci::toCodepage(expectedBadExpression) << std::endl;
+		return false;
+	}
+	if (output != expectedError)
+	{
+		std::cout << "The expression " << sci::toCodepage(expression) << " was correctly rejected, but the error was " << sci::toCodepage(output) << " when it was expected to have been " << sci::toCodepage(expectedError) << std::endl;
 		return false;
 	}
 	return true;
@@ -71,30 +81,60 @@ int main()
 	success &= test(sU("-3^2"), sU("-9"), variables, functionFactories);
 	success &= test(sU("0-3^2"), sU("-9"), variables, functionFactories);
 	success &= test(sU("(-3)^2"), sU("9"), variables, functionFactories);
+	success &= test(sU("3+-1"), sU("2"), variables, functionFactories);
+	success &= test(sU("3-+1"), sU("2"), variables, functionFactories);
+	success &= test(sU("3--1"), sU("4"), variables, functionFactories);
+	success &= test(sU("3--1"), sU("4"), variables, functionFactories);
+	success &= test(sU("3+--1"), sU("4"), variables, functionFactories);
+	success &= test(sU("3-+-1"), sU("4"), variables, functionFactories);
+	success &= test(sU("x="), sU(""), variables, functionFactories);
 
 	//Check direct infinite loops get caught
-	success &= testFails(sU("x=x"), variables, functionFactories);
-	success &= testFails(sU("x=1+x"), variables, functionFactories);
-	success &= testFails(sU("x=x+1"), variables, functionFactories);
-
+	success &= testFails(sU("x=x"), sU("x"), sU("infinite_recursion_error"), variables, functionFactories);
+	success &= testFails(sU("x=1+x"), sU("x"), sU("infinite_recursion_error"), variables, functionFactories);
+	success &= testFails(sU("x=x+1"), sU("x"), sU("infinite_recursion_error"), variables, functionFactories);
+	
 	//Check indirect infinite loops get caught
 	success &= test(sU("x=2"), sU(""), variables, functionFactories);
 	success &= test(sU("y=x+1"), sU(""), variables, functionFactories);
-	success &= testFails(sU("x=y+1"), variables, functionFactories);
-
+	success &= testFails(sU("x=y+1"), sU("y"), sU("infinite_recursion_error"), variables, functionFactories);
+	
 	//Check indirect infinite loops get caught with the variable second
 	success &= test(sU("x=2"), sU(""), variables, functionFactories);
 	success &= test(sU("y=x+1"), sU(""), variables, functionFactories);
-	success &= testFails(sU("x=1+y"), variables, functionFactories);
+	success &= testFails(sU("x=1+y"), sU("y"), sU("infinite_recursion_error"), variables, functionFactories);
 
 	//check an expression ending in an operator gets caught
-	success &= testFails(sU("x=2+"), variables, functionFactories);
+	success &= testFails(sU("x=2+"), sU("2+"), sU("second_operand_missing_error"), variables, functionFactories);
 	
 	//check what happens when a used variable gets set to bad expression
 	success &= test(sU("x=2"), sU(""), variables, functionFactories);
 	success &= test(sU("y=x+1"), sU(""), variables, functionFactories);
-	success &= testFails(sU("x=3+"), variables, functionFactories); //x should now have been removed
-	success &= testFails(sU("y"), variables, functionFactories);
+	success &= testFails(sU("x=3+"), sU("3+"), sU("second_operand_missing_error"), variables, functionFactories); //x should now have been removed
+	success &= testFails(sU("y"), sU("y"), sU("empty_variable_error"), variables, functionFactories);
+
+	//check other errors are generated correctly
+	success &= testFails(sU("sin(1"), sU("sin(1"), sU("missing_function_close_bracket_error"), variables, functionFactories);
+	success &= testFails(sU("notafunction()"), sU("notafunction()"), sU("function_not_found_error"), variables, functionFactories);
+	success &= testFails(sU("sin(1, 1)"), sU("sin(1, 1)"), sU("incorrect_number_of_function_arguments_error"), variables, functionFactories);
+	success &= testFails(sU("{1.2,1.2"), sU("{1.2,1.2"), sU("missing_array_close_bracket_error"), variables, functionFactories);
+	success &= testFails(sU("1.2,1.2}"), sU("1.2,1.2}"), sU("missing_array_open_bracket_error"), variables, functionFactories);
+	success &= testFails(sU("{1.2,1.2a}"), sU("1.2a"), sU("invalid_array_element_error"), variables, functionFactories);
+	success &= testFails(sU("notavarialble"), sU("notavarialble"), sU("variable_not_found_error"), variables, functionFactories);
+	success &= testFails(sU("sin(x=27)"), sU("sin(x"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
+	success &= testFails(sU("x=y=2"), sU("x=y=2"), sU("more_than_one_equals_error"), variables, functionFactories);
+	success &= testFails(sU("x=1a"), sU("1a"), sU("variable_not_found_error"), variables, functionFactories);
+	success &= testFails(sU("x=5*(2+1"), sU("(2+1"), sU("missing_close_bracket_error"), variables, functionFactories);
+	success &= testFails(sU("x=5(2+1)"), sU("5(2+1)"), sU("missing_close_bracket_error"), variables, functionFactories);
+	
+	success &= testFails(sU("x=1)"), sU("1)"), sU("missing_open_bracket_error"), variables, functionFactories);
+	success &= testFails(sU("x=2+1)*5"), sU("2+1)"), sU("missing_open_bracket_error"), variables, functionFactories);
+	
+
+	//check functtion calls with commas not separating arguments
+	success &= test(sU("x=sin({1,1})"), sU(""), variables, functionFactories);
+	success &= test(sU("x=sin(atan2(1,2))"), sU(""), variables, functionFactories);
+
 
 
 
@@ -103,7 +143,7 @@ int main()
 		std::cout << "All tests passed" << std::endl;
 	else
 	{
-		std::cout << "soume tests failed" << std::endl;
+		std::cout << "Some tests failed" << std::endl;
 		return 1;
 	}
 }

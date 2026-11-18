@@ -7,7 +7,7 @@ template<size_t N, class VariableStore>
 class CommaSeparatedInputsFunction : public Function<VariableStore>
 {
 public:
-	virtual bool setInputs(const sci::string inputs, sci::string& badExpression, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions)
+	virtual bool setInputs(const sci::string inputs, sci::string& badExpression, sci::string& error, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions)
 	{
 		//split the inputs via commas
 		size_t comma = -1;
@@ -33,13 +33,14 @@ public:
 		if (expressions.size() != N)
 		{
 			badExpression = inputs;
+			error = sU("incorrect_number_of_function_arguments_error");
 			return false;
 		}
-		//turn the text expressions to nodes
+		//turn the text expressions to nodes without evaluating them
 		for (size_t i = 0; i < m_ownedNodes.size(); ++i)
 		{
 			m_ownedNodes[i].reset(new typename VariableStore::node());
-			bool success = parseExpression(expressions[i], badExpression, variables, functions, *m_ownedNodes[i].get());
+			bool success = parseExpression(expressions[i], badExpression, error, variables, functions, *m_ownedNodes[i].get());
 			if (!success)
 				return false;
 			m_nodes.push_back(m_ownedNodes[i].get());
@@ -179,9 +180,9 @@ public:
 	class Function : public CommaSeparatedInputsFunction<1, VariableStore>
 	{
 	public:
-		bool setInputs(const sci::string inputs, sci::string& badExpression, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions) override
+		bool setInputs(const sci::string inputs, sci::string& badExpression, sci::string& error, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions) override
 		{
-			bool result = CommaSeparatedInputsFunction<1, VariableStore>::setInputs(inputs, badExpression, variables, functions);
+			bool result = CommaSeparatedInputsFunction<1, VariableStore>::setInputs(inputs, badExpression, error, variables, functions);
 			if(result)
 				m_cache = CommaSeparatedInputsFunction<1, VariableStore>::m_nodes[0]->calculate();
 			return result;

@@ -4,6 +4,7 @@
 #include"Operations.h"
 #include"VariableStore.h"
 #include<memory>
+#include<scieng/codepage.h>
 
 template<class VariableStore>
 class FunctionMultiFactory;
@@ -18,7 +19,7 @@ class Node
 public:
 	using variable = sci::GridData<double, nDims>;
 	using index = std::array<size_t, nDims>;
-	friend bool parseLine< VariableStore<nDims>>(const sci::string& line, sci::string& badLine, VariableStore<nDims>* variableDestination, const VariableStore<nDims>& variableSource, const FunctionMultiFactory<VariableStore<nDims>>& functions, Node& node, bool& isAssignment);
+	friend bool parseLine< VariableStore<nDims>>(const sci::string& line, sci::string& badLine, sci::string &error, VariableStore<nDims>* variableDestination, const VariableStore<nDims>& variableSource, const FunctionMultiFactory<VariableStore<nDims>>& functions, Node& node, bool& isAssignment);
 	friend class VariableStore<nDims>;
 	Node()
 		:m_function(nullptr)
@@ -93,20 +94,30 @@ private:
 	//been processed to remove whitespace and check for multiple equals signs before
 	//being passed in here
 	//To set a node from user code, use parseLine
-	bool set(const sci::string& expression, sci::string& badExpression, const VariableStore<nDims>& variables, const FunctionMultiFactory<VariableStore<nDims>>& functions)
+	bool set(const sci::string& expression, sci::string& badExpression, sci::string &error, const VariableStore<nDims>& variables, const FunctionMultiFactory<VariableStore<nDims>>& functions)
 	{
+		error.clear();
+		//clear the subnodes
+		m_ownedNodes[0].reset(nullptr);
+		m_ownedNodes[1].reset(nullptr);
+		m_nodes[0] = nullptr;
+		m_nodes[1] = nullptr;
+		m_function.reset(nullptr);
+		m_constant.reshape({ 0,0 });
 		m_expression = expression;
 		badExpression.clear();
-		std::array<sci::string, 3> split = splitExpression(expression);
+
+		std::array<sci::string, 3> split;
+		if(!expression.empty()) //we can permit an empty expression when parsing. If still empty at evaluation it will be flagged
+			split = splitExpression(expression, error);
+		if (!error.empty())
+		{
+			badExpression = expression;
+			return false;
+		}
 		if (split[0].empty())
 		{
 			//this is a zero sized variable - we can allow this
-			m_ownedNodes[0].reset(nullptr);
-			m_ownedNodes[1].reset(nullptr);
-			m_nodes[0] = nullptr;
-			m_nodes[1] = nullptr;
-			m_function.reset(nullptr);
-			m_constant.reshape({ 0,0 });
 			m_op = constantRead;
 			return true;
 		}
@@ -122,6 +133,7 @@ private:
 				if (split[0].back() != sU(')'))
 				{
 					badExpression = split[0];
+					error = sU("missing_function_close_bracket_error");
 					return false;
 				}
 				sci::string functionName = split[0].substr(0, bracketIndex);
@@ -130,11 +142,15 @@ private:
 				if (!m_function)
 				{
 					badExpression = split[0];
+					error = sU("function_not_found_error");
 					return false;
 				}
-				bool success = m_function->setInputs(functionParameters, badExpression, variables, functions);
+				bool success = m_function->setInputs(functionParameters, badExpression, error, variables, functions);
 				if (!success)
 				{
+					badExpression = split[0];
+					if(error.empty())
+						error = sU("function_call_failed_error");
 					return false;
 				}
 				m_op = runFunction;
@@ -142,24 +158,21 @@ private:
 			}
 
 			//check if it's an array value
-			size_t curlyBracketIndex = split[0].find(sU('{'));
+			size_t curlyBracketIndex = split[0].find_first_of(sU("{}"));
 			if (curlyBracketIndex != sci::string::npos)
 			{
-				bool result = parseArray(split[0], m_constant);
-				if (result)
-					m_op = constantRead;
-				else
-				{
-					badExpression = split[0];
-				}
-				return result;
+				bool result = parseArray(split[0], badExpression, error, m_constant);
+				if (!result)
+					return false;
+				m_op = constantRead;
+				return true;
 			}
 
 			//check if it's a 1d value
 			std::string codePageExpr = basicAscii(split[0]);
 			char* check = nullptr;
 			double value = std::strtod(codePageExpr.c_str(), &check);
-			if (check != codePageExpr.c_str())
+			if (check == codePageExpr.c_str()+codePageExpr.length())
 			{
 				//create a variable with this value
 				index shape;
@@ -179,6 +192,7 @@ private:
 			{
 				//it wasn't a variable, return the expression as a bad expression
 				badExpression = split[0];
+				error = sU("variable_not_found_error");
 				return false;
 			}
 			m_nodes[0] = node;
@@ -196,6 +210,7 @@ private:
 			if (contains(this))
 			{
 				badExpression = expression;
+				error = sU("infinite_recursion_error");
 				return false;
 			}
 
@@ -205,6 +220,7 @@ private:
 		{
 			//this means we ended on an operator other than equals - obviously bad
 			badExpression = expression;
+			error = sU("second_operand_missing_error");
 			return false;
 		}
 		else
@@ -215,13 +231,13 @@ private:
 			m_nodes[0] = m_ownedNodes[0].get();
 			m_nodes[1] = m_ownedNodes[1].get();
 			m_op = getOp<VariableStore<nDims>>(split[1]);
-			m_ownedNodes[0]->set(split[0], badExpression, variables, functions);
-			if (!badExpression.empty())
+			m_ownedNodes[0]->set(split[0], badExpression, error, variables, functions);
+			if (!badExpression.empty() || !error.empty())
 			{
 				return false;
 			}
-			m_ownedNodes[1]->set(split[2], badExpression, variables, functions);
-			if (!badExpression.empty())
+			m_ownedNodes[1]->set(split[2], badExpression, error, variables, functions);
+			if (!badExpression.empty() || !error.empty())
 			{
 				return false;
 			}
@@ -233,6 +249,7 @@ private:
 			if (contains(this))
 			{
 				badExpression = expression;
+				error = sU("infinite_recursion_error");
 				return false;
 			}
 		}
@@ -335,31 +352,47 @@ private:
 		return result;
 	}
 
-	static size_t parseArray(const sci::string& str, variable& result)
+	static size_t parseArray(const sci::string& str, sci::string& badExpression, sci::string& error, variable& result)
 	{
 		//check for a sensible length
 		if (str.length() < 2)
+		{
+			badExpression = str;
+			error = sU("array_parse_error");
 			return false;
+		}
 
 		//when it arrives here it should already have been trimmed so the first and last elements should be { and }
 
 		// check if this is a 1d or 2d array by checking the 2nd element
 		size_t nextNonWhiteSpace = str.find_first_not_of(sU(" \t"), 1);
 		if (nextNonWhiteSpace == sci::string::npos)
+		{
+			badExpression = str;
+			error = sU("array_parse_error");
 			return false;
+		}
 		bool twoD = isOpenCurlyBracket(str[nextNonWhiteSpace]);
 
 		if (twoD)
 		{
 			if (!isCloseCurlyBracket(str.back()))
+			{
+				badExpression = str;
+				error = sU("missing_array_close_bracket_error");
 				return false;
+			}
 		}
 
 		size_t start = twoD ? nextNonWhiteSpace : 0;
 		size_t end = twoD ? str.length() - 1 : str.length();
 
 		if (!isOpenCurlyBracket(str[start]))
+		{
+			badExpression = str.substr(start, end-start);
+			error = sU("missing_array_open_bracket_error");
 			return false;
+		}
 
 		//check how many rows and columns we have and check each row
 		//has the same number of columns
@@ -392,10 +425,18 @@ private:
 				nRowCommas = 0;
 			}
 			if (!isCloseCurlyBracket(str[i]) && bracketDepth == 0 && !isWhiteSpace(str[i]))
+			{
+				badExpression = str.substr(start, i+1-start);
+				error = sU("missing_array_close_bracket_error");
 				return false;
+			}
 		}
 		if (bracketDepth != 0)
+		{
+			badExpression = str;
+			error = sU("missing_array_close_bracket_error");
 			return false;
+		}
 
 		size_t nColumns = nCommas + 1;
 		result.reshape({ nRows, nColumns });
@@ -410,8 +451,12 @@ private:
 			codePageStr = basicAscii(str.substr(pos, end - pos));
 			char* check = nullptr;
 			r = std::strtod(codePageStr.c_str(), &check);
-			if (check == codePageStr.c_str())
+			if (check != codePageStr.c_str() + codePageStr.length())
+			{
+				error = sU("invalid_array_element_error");
+				badExpression = sci::toSci(codePageStr);
 				return false;
+			}
 			pos = str.find_first_not_of(sU(",}{ \t"), end + 1);
 		}
 		return true;
@@ -436,13 +481,16 @@ private:
 		return -1;
 	}
 
-	static constexpr std::array<sci::string, 3> splitExpression(const sci::string& expression)
+	static constexpr std::array<sci::string, 3> splitExpression(const sci::string& expression, sci::string &error)
 	{
 		std::array<sci::string, 3> result;
 		const std::array<sci::string, 3> badResult{ sU(""), sU(""), sU("") };
 
 		if (expression.length() == 0)
+		{
+			error = sU("parser_bug_zero_sized_expression)sent_to_splitExpression_error");
 			return badResult;
+		}
 
 
 		//check if the whole expression is enclosed in brackets and reparse without the brackets if so
@@ -451,16 +499,19 @@ private:
 			//find the close bracket
 			size_t closeBracketIndex = findCloseBracket(expression, 0);
 			if (closeBracketIndex == -1)
+			{
+				error = sU("missing_close_bracket_error");
 				return badResult;
+			}
 			if (closeBracketIndex == expression.length() - 1)
-				return splitExpression(expression.substr(1, expression.length() - 2));
+				return splitExpression(expression.substr(1, expression.length() - 2), error);
 		}
 
 		//check if the expression starts with +
 		if (isPlus(expression[0]))
 		{
 			//chop off the plus and reparse
-			return splitExpression(expression.substr(1));
+			return splitExpression(expression.substr(1), error);
 		}
 
 		//check if the expression starts with a minus
@@ -472,7 +523,7 @@ private:
 				return std::array<sci::string, 3>{sU("-1"), sU(""), sU("")};
 
 			//otherwise clip off the - and return -1*the rest
-			return splitExpression(sU("(-1)*") + expression.substr(1));
+			return splitExpression(sU("(-1)*") + expression.substr(1), error);
 		}
 
 		//find positions of +/-, multiply and divide and power outside of any brackets.
@@ -483,6 +534,7 @@ private:
 		size_t multiplyDivideIndex = -1;
 		size_t powerIndex = -1;
 		size_t addSubtractIndex = -1;
+		size_t lastCloseBracketIndex = -1;
 		int bracketCount = 0;
 		int curlyBracketCount = 0;
 		for (size_t i = 0; i < expression.length(); ++i)
@@ -495,6 +547,7 @@ private:
 			else if (isCloseBracket(expression[i]))
 			{
 				--bracketCount;
+				lastCloseBracketIndex = i;
 				continue;
 			}
 			else if (isOpenCurlyBracket(expression[i]))
@@ -508,10 +561,10 @@ private:
 				continue;
 			}
 
-			if (bracketCount != 0 || curlyBracketCount != 0)
+			if (bracketCount > 0 || curlyBracketCount != 0)
 				continue;
 
-			else if (isPlusMinus(expression[i]))
+			else if (isPlusMinus(expression[i]) && curlyBracketCount == 0)
 			{
 				//check this isn't a sign change after a multiply or divide or part of an exponent
 				if (i > 0 && (isMultiply(expression[i - 1]) || isDivide(expression[i - 1]) || isExp(expression[i - 1])))
@@ -520,28 +573,38 @@ private:
 				}
 				else
 				{
-					if (curlyBracketCount != 0)
-						return badResult;
 					addSubtractIndex = i;
 				}
 			}
-			else if (isMultiply(expression[i]))
+			else if (isMultiply(expression[i]) && curlyBracketCount == 0)
 			{
-				if (curlyBracketCount != 0)
-					return badResult;
 				multiplyDivideIndex = i;
 			}
-			else if (isDivide(expression[i]))
+			else if (isDivide(expression[i]) && curlyBracketCount == 0)
 			{
-				if (curlyBracketCount != 0)
-					return badResult;
 				multiplyDivideIndex = i;
 			}
-			else if (isPower(expression[i]) && powerIndex == -1) //get the first, not last power
+			else if (isPower(expression[i]) && powerIndex == -1 && curlyBracketCount == 0) //get the first, not last power
 			{
-				if (curlyBracketCount != 0)
-					return badResult;
 				powerIndex = i;
+			}
+		}
+
+		//report a missing open bracket error or reevaluate the indices as though there
+		//was an open bracket at the start of the expression
+		if (bracketCount < 0)
+		{
+			if (powerIndex < lastCloseBracketIndex)
+				powerIndex = -1;
+			if (addSubtractIndex < lastCloseBracketIndex)
+				addSubtractIndex = -1;
+			if (multiplyDivideIndex < lastCloseBracketIndex)
+				multiplyDivideIndex = -1;
+			
+			if (powerIndex == -1 && addSubtractIndex == -1 && multiplyDivideIndex ==-1)
+			{
+				error = sU("missing_open_bracket_error");
+				return badResult;
 			}
 		}
 		//split on an add or subtract if we found one
@@ -559,7 +622,6 @@ private:
 			return std::array<sci::string, 3>{expression.substr(0, powerIndex),
 			expression.substr(powerIndex, 1),
 			expression.substr(powerIndex + 1)};
-
 
 		//if we reach here we have a variable or constant or function
 		return std::array<sci::string, 3>{expression, sU(""), sU("")};
