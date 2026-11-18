@@ -147,6 +147,7 @@ int main()
 	success &= testFails(sU("my variable =5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 	success &= testFails(sU("my+ variable=5"), sU("my+variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 	success &= testFails(sU("my +variable=5"), sU("my+variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
+	success &= testFails(sU("x=2 2"), sU("2 2"), sU("missing_operator_error"), variables, functionFactories);
 
 	//check functtion calls with commas not separating arguments
 	success &= test(sU("x=sin({1,1})"), sU(""), variables, functionFactories);

@@ -528,7 +528,7 @@ private:
 
 		if (expression.length() == 0)
 		{
-			error = sU("parser_bug_zero_sized_expression)sent_to_splitExpression_error");
+			error = sU("parser_bug_zero_sized_expression_sent_to_splitExpression_error");
 			return badResult;
 		}
 
@@ -577,6 +577,7 @@ private:
 		size_t lastCloseBracketIndex = -1;
 		int bracketCount = 0;
 		int curlyBracketCount = 0;
+		bool hasSpace = false;
 		for (size_t i = 0; i < expression.length(); ++i)
 		{
 			if (isOpenBracket(expression[i]))
@@ -612,7 +613,7 @@ private:
 					//do nothing, don't split here
 				}
 				//don't split here if we are immediately after another plus or minus, this allows chaining them
-				else if (i>0 && isPlusMinus(expression[i-1]))
+				else if (i > 0 && isPlusMinus(expression[i - 1]))
 				{
 					//do nothing, don't split here
 				}
@@ -634,6 +635,8 @@ private:
 			{
 				powerIndex = i;
 			}
+			else if (expression[i] == sU(' '))
+				hasSpace = true;
 		}
 
 		//report a missing open bracket error or reevaluate the indices as though there
@@ -669,6 +672,12 @@ private:
 			expression.substr(powerIndex, 1),
 			expression.substr(powerIndex + 1)};
 
+		if (hasSpace)
+		{
+
+			error = sU("missing_operator_error");
+			return badResult;
+		}
 		//if we reach here we have a variable or constant or function
 		return std::array<sci::string, 3>{expression, sU(""), sU("")};
 	}

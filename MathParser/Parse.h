@@ -38,7 +38,7 @@ bool parseLine(const sci::string& line, sci::string& badLine, sci::string &error
 			(VariableStore::getDisallowedCharacters().find(line[i + 1]) == sci::string::npos || // (to the right is a variable character
 			line[i + 1] == sU(' ') || line[i + 1] == sU('\t')))                                 // or a space)
 		{
-			trimmedLine.push_back(su(' '));
+			trimmedLine.push_back(sU(' '));
 			addedSpaceLast = true;
 		}
 
