@@ -136,6 +136,8 @@ int main()
 	success &= testFails(sU("x=2+1)*5"), sU("2+1)"), sU("missing_open_bracket_error"), variables, functionFactories);
 	success &= testFails(sU("x={(2}+1)*5"), sU("{(2}+1)"), sU("missing_close_bracket_error"), variables, functionFactories);
 	success &= testFails(sU("x=({2)+1}*5"), sU("({2)+1}"), sU("missing_close_bracket_error"), variables, functionFactories);
+	success &= testFails(sU("=5"), sU(""), sU("invalid_characters_before_equals_error"), variables, functionFactories);
+	success &= testFails(sU("my variable=5"), sU(""), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 	
 
 	//check functtion calls with commas not separating arguments

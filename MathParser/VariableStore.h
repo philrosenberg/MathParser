@@ -38,8 +38,8 @@ public:
 	}
 	static bool checkValidVariableName(const sci::string & name)
 	{
-		const sci::string invalidCharacters(sU("+-*/(){},^"));
-		return name.find_first_of(invalidCharacters) == sci::string::npos;
+		const sci::string invalidCharacters(sU("+-*/(){},^="));
+		return name.length() > 0 && name.find_first_of(invalidCharacters) == sci::string::npos;
 	}
 	//There is currently no way to safely remove variables without
 	// leaving dangling pointers, so we don't do it
