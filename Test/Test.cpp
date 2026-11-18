@@ -88,6 +88,8 @@ int main()
 	success &= test(sU("3+--1"), sU("4"), variables, functionFactories);
 	success &= test(sU("3-+-1"), sU("4"), variables, functionFactories);
 	success &= test(sU("x="), sU(""), variables, functionFactories);
+	success &= test(sU("x=sin(1)"), sU(""), variables, functionFactories);
+	success &= test(sU("x=atan2(1,2)"), sU(""), variables, functionFactories);
 
 	//Check direct infinite loops get caught
 	success &= testFails(sU("x=x"), sU("x"), sU("infinite_recursion_error"), variables, functionFactories);

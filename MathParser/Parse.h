@@ -135,7 +135,7 @@ bool parseExpression(const sci::string& line, sci::string& badLine, sci::string 
 	bool result = parseLine(line, badLine, error, (VariableStore*)nullptr, variables, functions, output, isAssignment);
 	if (result && isAssignment)
 		error = sU("expression_contained_unexpected_assignment_error");
-	return result && isAssignment;
+	return result && !isAssignment;
 }
 
 template<class VariableStore>
