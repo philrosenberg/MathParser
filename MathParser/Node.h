@@ -409,13 +409,19 @@ private:
 		size_t nRowCommas = 0;
 		size_t nRows = 0;
 		int bracketDepth = 0;
+		bool isEmpty = false;
+		size_t rowStart = -1;
 		for (size_t i = start; i < end; ++i)
 		{
 			if (isOpenCurlyBracket(str[i]))
 			{
 				++nRows;
+				rowStart = i;
 				if (bracketDepth != 0)
+				{
+					error = sU("curly_bracket_depth_greater_that_2_error");
 					return false;
+				}
 				++bracketDepth;
 			}
 			if (isComma(str[i]))
@@ -425,18 +431,32 @@ private:
 			if (isCloseCurlyBracket(str[i]))
 			{
 				if (bracketDepth != 1)
+				{
+					error = sU("missing_array_open_bracket_error");
+					badExpression = str.substr(rowStart, i - rowStart + 1);
 					return false;
-				if (nRows > 1 && nRowCommas != nCommas)
-					return false;
+				}
 				if (nRows == 1)
 					nCommas = nRowCommas;
+				else if (nRowCommas != nCommas)
+				{
+					error = sU("array_2nd_dimension_sizes_do_not_match_error");
+					badExpression = str.substr(rowStart, i - rowStart + 1);
+					return false;
+				}
 				--bracketDepth;
 				nRowCommas = 0;
 			}
-			if (!isCloseCurlyBracket(str[i]) && bracketDepth == 0 && !isWhiteSpace(str[i]))
+			else if (twoD && !isOpenCurlyBracket(str[i]) && bracketDepth == 0 && !isWhiteSpace(str[i]))
 			{
-				badExpression = str.substr(start, i+1-start);
-				error = sU("missing_array_close_bracket_error");
+				badExpression = str.substr(i, 1);
+				error = sU("unexpected_character_between_array_brackets_error");
+				return false;
+			}
+			else if (!twoD && bracketDepth == 0 && !isWhiteSpace(str[i]))
+			{
+				badExpression = str.substr(i);
+				error = sU("unexpected_characters_after_array_error");
 				return false;
 			}
 		}
@@ -454,15 +474,21 @@ private:
 		std::string codePageStr;
 		for (auto& r : result)
 		{
+			if (pos == sci::string::npos)
+			{
+				error = sU("invalid_or_missing_array_element_error");
+				badExpression = str.substr(end);
+				return false;
+			}
 			if (isOpenCurlyBracket(str[pos]))
 				++pos;
 			size_t end = str.find_first_of(sU(",}"), pos);
 			codePageStr = basicAscii(str.substr(pos, end - pos));
 			char* check = nullptr;
 			r = std::strtod(codePageStr.c_str(), &check);
-			if (check != codePageStr.c_str() + codePageStr.length())
+			if (check != codePageStr.c_str() + codePageStr.length() || codePageStr.length() == 0)
 			{
-				error = sU("invalid_array_element_error");
+				error = sU("invalid_or_missing_array_element_error");
 				badExpression = sci::toSci(codePageStr);
 				return false;
 			}
