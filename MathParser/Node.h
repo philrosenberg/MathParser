@@ -571,6 +571,12 @@ private:
 				{
 					//do nothing, don't split here
 				}
+				//don't split here if we are immediately after another plus or minus, this allows chaining them
+				else if (i>0 && isPlusMinus(expression[i-1]))
+				{
+					//do nothing, don't split here
+				}
+
 				else
 				{
 					addSubtractIndex = i;
