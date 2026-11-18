@@ -50,6 +50,15 @@ public:
 	//virtual double getValue(const index& position) const = 0;
 	virtual ~CommaSeparatedInputsFunction()
 	{}
+	virtual bool contains(const typename VariableStore::node* node) const override
+	{
+		for (const auto& n : m_nodes)
+		{
+			if (n != nullptr && (n == node || n->contains(node)))
+				return true;
+		}
+		return false;
+	}
 protected:
 	std::array<std::unique_ptr<typename VariableStore::node>, N>m_ownedNodes;
 	sci::GridData<const typename VariableStore::node*, 1>m_nodes;

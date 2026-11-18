@@ -45,6 +45,7 @@ public:
 	virtual bool setInputs(const sci::string inputs, sci::string& badExpression, sci::string &error, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions) = 0;
 	virtual index getShapeAndCacheIfNeeded() const = 0;
 	virtual double getValue(const index& position) const = 0;
+	virtual bool contains(const typename VariableStore::node* node) const = 0;
 	virtual ~Function()
 	{}
 };

@@ -38,6 +38,8 @@ public:
 			if (n != nullptr && (n == other || n->contains(other)))
 				return true;
 		}
+		if (m_function && m_function->contains(other))
+			return true;
 		return false;
 	}
 
@@ -151,6 +153,13 @@ private:
 					badExpression = split[0];
 					if(error.empty())
 						error = sU("function_call_failed_error");
+					return false;
+				}
+				//check for infinite recursion
+				if (contains(this))
+				{
+					badExpression = expression;
+					error = sU("infinite_recursion_error");
 					return false;
 				}
 				m_op = runFunction;
