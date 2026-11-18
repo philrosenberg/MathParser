@@ -39,7 +39,7 @@ bool parseLine(const sci::string& line, sci::string& badLine, sci::string &error
 	if (equalsCount == 0)
 	{
 		//If there is no equals sign, calculate the result of the expression and print it
-		return node.set(line, badLine, error, variableSource, functions);
+		return node.set(trimmedline, badLine, error, variableSource, functions);
 	}
 	else
 	{
