@@ -244,12 +244,16 @@ inline double max(std::array<double, 2> inputs)
 template<class Node>
 inline void rand1d(typename Node::variable& result, std::array<const Node*, 2> input)
 {
+	//arg 1 is the number of elements
+	//arg 2 is the seed
+	//They are assumed to be scalars, otherwise only elements 0,0 are used
+	result.reshape({ 0,0 });
+	sci::string error; // gets overflow errors if the arguments are huge, but I'm not really concerned as I only use the first element
 	auto input0Shape = input[0]->getShape();
 	auto input1Shape = input[1]->getShape();
-	result.reshape({ 0,0 });
-	if (Node::getSizeFromShape(input0Shape) == 0)
+	if (Node::getSizeFromShape(input0Shape, error) == 0)
 		return;
-	if (Node::getSizeFromShape(input1Shape) == 0)
+	if (Node::getSizeFromShape(input1Shape, error) == 0)
 		return;
 	size_t size = size_t(input[0]->getValue({ 0,0 }));
 	result.reshape({ size, 1 });
@@ -261,18 +265,31 @@ inline void rand1d(typename Node::variable& result, std::array<const Node*, 2> i
 template<class Node>
 inline void rand2d(typename Node::variable& result, std::array<const Node*, 3> input)
 {
+	//arg 1 is the number of elements in dim1
+	//arg 2 is the number of elements in dim2
+	//arg 3 is the seed
+	//They are assumed to be scalars, otherwise only elements 0,0 are used
+	sci::string error; // gets overflow errors if the arguments are huge, but I'm not really concerned as I only use the first element
 	auto input0Shape = input[0]->getShape();
 	auto input1Shape = input[1]->getShape();
 	auto input2Shape = input[2]->getShape();
 	result.reshape({ 0,0 });
-	if (Node::getSizeFromShape(input0Shape) == 0)
+	if (Node::getSizeFromShape(input0Shape, error) == 0)
 		return;
-	if (Node::getSizeFromShape(input1Shape) == 0)
+	if (Node::getSizeFromShape(input1Shape, error) == 0)
 		return;
-	if (Node::getSizeFromShape(input2Shape) == 0)
+	if (Node::getSizeFromShape(input2Shape, error) == 0)
 		return;
 	size_t size0 = size_t(input[0]->getValue({ 0,0 }));
 	size_t size1 = size_t(input[1]->getValue({ 0,0 }));
+	if (size1 != 0 && -1 / size1 < size0)
+	{
+		//we have asked for an array bigger than is representable
+		//silently return an empty array. I should do better, and
+		//will when I get chance
+		result.reshape({ 0, 0 });
+		return;
+	}
 	result.reshape({ size0, size1 });
 	srand((unsigned int)(input[2]->getValue({ 0,0 })));
 	for (auto& r : result)

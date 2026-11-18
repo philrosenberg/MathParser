@@ -87,9 +87,9 @@ public:
 	{
 		return m_op(m_function.get(), &m_constant, m_shape, m_nodes, position);
 	}
-	static constexpr size_t getSizeFromShape(const index &shape)
+	static constexpr size_t getSizeFromShape(const index &shape, sci::string& error)
 	{
-		return multArray<0>(shape);
+		return multArray<0>(shape, error);
 	}
 private:
 	//set is private to restrict the callers. This is because expression must have
@@ -273,12 +273,17 @@ private:
 	decltype(getOp<VariableStore<nDims>>(sci::string())) m_op;
 
 	template<int startIndex>
-	static constexpr size_t multArray(const std::array<size_t, nDims> &array)
+	static constexpr size_t multArray(const std::array<size_t, nDims> &array, sci::string &error)
 	{
 		if constexpr (startIndex == nDims)
 			return 1;
 		else
-			return array[startIndex] * multArray<startIndex + 1>(array);
+		{
+			size_t next = multArray<startIndex + 1>(array, error);
+			if (next > 0 && -1 / next < array[startIndex])
+				error = sU("array_too_large_error");
+			return array[startIndex] * next;
+		}
 	}
 
 	static constexpr bool isOpenBracket(schar c)
