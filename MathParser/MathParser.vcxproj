@@ -136,10 +136,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Node.cpp" />
-    <ClCompile Include="Operations.cpp" />
-    <ClCompile Include="Parse.cpp" />
-    <ClCompile Include="VariableStore.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Function.h" />
