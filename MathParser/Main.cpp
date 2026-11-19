@@ -15,7 +15,10 @@ int main()
 	parseLine(sU("pi=3.14159265359"), true, badExpression, variables, functionFactories, output, isAssignment);
 	parseLine(sU("e=2.71828182845"), true, badExpression, variables, functionFactories, output, isAssignment);
 
-	//beginStreamLoop(std::cin, std::cout, variables, functionFactories);
+#ifdef _WIN32
 	beginStreamLoop(std::wcin, std::wcout, variables, functionFactories);
+#else
+	beginStreamLoop(std::cin, std::cout, variables, functionFactories);
+#endif
 
 }
