@@ -313,7 +313,7 @@ private:
 
 	static constexpr bool isOperator(schar c)
 	{
-		return c == sU('+') || c == sU('-') || c == sU('*') || c == sU('/') || c == sU('*');
+		return c == sU('+') || c == sU('-') || c == sU('*') || c == sU('/') || c == sU('^');
 	}
 
 	static constexpr bool isPlusMinus(schar c)
