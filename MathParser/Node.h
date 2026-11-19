@@ -76,7 +76,7 @@ public:
 			for (size_t i = 0; i < m_shape.size(); ++i)
 			{
 				m_shape[i] = 0;
-				if (shape1[i] * shape2[i] > 0)
+				if (shape1[i] != 0 && shape2[i] != 0)
 					m_shape[i] = std::max(shape1[i], shape2[i]);
 			}
 		}
