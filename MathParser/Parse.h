@@ -1,4 +1,5 @@
 #pragma once
+#include"Node.h"
 #include"Function.h"
 #include"VariableStore.h"
 #include<iostream>
@@ -170,7 +171,7 @@ bool parseExpression(const sci::string& line, sci::string& badLine, sci::string 
 }
 
 template<class VariableStore>
-void beginConsoleLoop(VariableStore& variables, FunctionMultiFactory<VariableStore>& functionFactories)
+void beginStreamLoop(std::istream& sin, std::ostream& sout, VariableStore& variables, FunctionMultiFactory<VariableStore>& functionFactories)
 {
 	std::string line;
 	sci::string output;
@@ -178,18 +179,45 @@ void beginConsoleLoop(VariableStore& variables, FunctionMultiFactory<VariableSto
 	bool isAssignment;
 	while (1)
 	{
-		std::cout << "math> ";
-		std::getline(std::cin, line);
+		sout << "math> ";
+		std::getline(sin, line);
 		if (line == "exit")
 			break;
 		bool good = parseLine(sci::toSci(line), false, badExpression, variables, functionFactories, output, isAssignment);
 		if (output.length() > 0)
 		{
-			std::cout << sci::toCodepage(output) << "\n";
+			sout << sci::toCodepage(output) << "\n";
 		}
 		if (!good)
 		{
-			std::cout << "Bad expression: " << sci::toCodepage(badExpression) << "\n";
+			sout << "Bad expression: " << sci::toCodepage(badExpression) << "\n";
 		}
 	};
 }
+
+#ifdef _WIN32
+template<class VariableStore>
+void beginStreamLoop(std::wistream& sin, std::wostream& sout, VariableStore& variables, FunctionMultiFactory<VariableStore>& functionFactories)
+{
+	std::wstring line;
+	sci::string output;
+	sci::string badExpression;
+	bool isAssignment;
+	while (1)
+	{
+		sout << "math> ";
+		std::getline(sin, line);
+		if (line == L"exit")
+			break;
+		bool good = parseLine(sci::toSci(line), false, badExpression, variables, functionFactories, output, isAssignment);
+		if (output.length() > 0)
+		{
+			sout << sci::toNativeUnicode(output) << "\n";
+		}
+		if (!good)
+		{
+			sout << L"Bad expression: " << sci::toNativeUnicode(badExpression) << "\n";
+		}
+	};
+}
+#endif
