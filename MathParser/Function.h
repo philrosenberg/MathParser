@@ -68,16 +68,25 @@ template<size_t N, class VariableStore>
 class ElementwiseCommaSeparatedInputsFunction : public CommaSeparatedInputsFunction<N, VariableStore>
 {
 public:
-	virtual typename VariableStore::node::index getShapeAndCacheIfNeeded() const override
+	virtual typename VariableStore::node::index getShapeAndCacheIfNeeded(sci::string &error) const override
 	{
-		typename VariableStore::node::index result;
-		for (auto& r : result)
-			r = 0;
-		for (auto n : CommaSeparatedInputsFunction<N, VariableStore>::m_nodes)
+
+		if constexpr (N == 0)
 		{
-			typename VariableStore::node::index thisShape = n->getShape();
-			for (size_t i = 0; i < thisShape.size(); ++i)
-				result[i] = std::max(result[i], thisShape[i]);
+			typename VariableStore::node::index result;
+			for (size_t i = 0; i < result.size(); ++i)
+				result[i] = 0;
+			error = "empty_variable_error";
+			return result;
+		}
+		typename VariableStore::node::index result;
+
+		//make a reference to the nodes to just make the syntax shorter
+		auto const& nodes = CommaSeparatedInputsFunction<N, VariableStore>::m_nodes;
+		result = nodes[0]->getShape(error);
+		for (size_t i = 1; i < nodes.size(); ++i)
+		{
+			result = VariableStore::node::combineShapes(result, nodes[i]->getShape(error), error);
 		}
 		return result;
 	}
@@ -90,7 +99,7 @@ using ElementwiseFunc2Param = double(*)(double, double);
 template<size_t N>
 using ElementwiseFuncNParam = double(*)(std::array<double, N>);
 template<size_t N, class VariableStore>
-using CacheFuncNParam = void(*)(typename VariableStore::node::variable&, std::array<const typename VariableStore::node*, N>);
+using CacheFuncNParam = void(*)(typename VariableStore::node::variable&, std::array<const typename VariableStore::node*, N>, sci::string&);
 
 
 //this class creates a function that will apply a scalar function accepting one parameter
@@ -154,12 +163,12 @@ public:
 	class Function : public CommaSeparatedInputsFunction<N_PARAMS, VariableStore>
 	{
 	public:
-		VariableStore::node::index getShapeAndCacheIfNeeded() const override
+		VariableStore::node::index getShapeAndCacheIfNeeded(sci::string& error) const override
 		{
 			std::array<const typename VariableStore::node*, N_PARAMS> inputs;
 			for (size_t i = 0; i < N_PARAMS; ++i)
 				inputs[i] = CommaSeparatedInputsFunction<N_PARAMS, VariableStore>::m_nodes[i];
-			FUNC(m_cache, inputs);
+			FUNC(m_cache, inputs, error);
 			return m_cache.shape();
 		}
 		double getValue(const typename VariableStore::node::index& position) const override
@@ -193,10 +202,10 @@ public:
 		{
 			bool result = CommaSeparatedInputsFunction<1, VariableStore>::setInputs(inputs, badExpression, error, variables, functions);
 			if(result)
-				m_cache = CommaSeparatedInputsFunction<1, VariableStore>::m_nodes[0]->calculate();
+				m_cache = CommaSeparatedInputsFunction<1, VariableStore>::m_nodes[0]->calculate(error);
 			return result;
 		}
-		typename VariableStore::node::index getShapeAndCacheIfNeeded() const override
+		typename VariableStore::node::index getShapeAndCacheIfNeeded(sci::string& error) const override
 		{
 			return m_cache.shape();
 		}
@@ -242,15 +251,14 @@ inline double max(std::array<double, 2> inputs)
 }
 
 template<class Node>
-inline void rand1d(typename Node::variable& result, std::array<const Node*, 2> input)
+inline void rand1d(typename Node::variable& result, std::array<const Node*, 2> input, sci::string& error)
 {
 	//arg 1 is the number of elements
 	//arg 2 is the seed
 	//They are assumed to be scalars, otherwise only elements 0,0 are used
 	result.reshape({ 0,0 });
-	sci::string error; // gets overflow errors if the arguments are huge, but I'm not really concerned as I only use the first element
-	auto input0Shape = input[0]->getShape();
-	auto input1Shape = input[1]->getShape();
+	auto input0Shape = input[0]->getShape(error);
+	auto input1Shape = input[1]->getShape(error);
 	if (Node::getSizeFromShape(input0Shape, error) == 0)
 		return;
 	if (Node::getSizeFromShape(input1Shape, error) == 0)
@@ -263,16 +271,15 @@ inline void rand1d(typename Node::variable& result, std::array<const Node*, 2> i
 }
 
 template<class Node>
-inline void rand2d(typename Node::variable& result, std::array<const Node*, 3> input)
+inline void rand2d(typename Node::variable& result, std::array<const Node*, 3> input, sci::string& error)
 {
 	//arg 1 is the number of elements in dim1
 	//arg 2 is the number of elements in dim2
 	//arg 3 is the seed
 	//They are assumed to be scalars, otherwise only elements 0,0 are used
-	sci::string error; // gets overflow errors if the arguments are huge, but I'm not really concerned as I only use the first element
-	auto input0Shape = input[0]->getShape();
-	auto input1Shape = input[1]->getShape();
-	auto input2Shape = input[2]->getShape();
+	auto input0Shape = input[0]->getShape(error);
+	auto input1Shape = input[1]->getShape(error);
+	auto input2Shape = input[2]->getShape(error);
 	result.reshape({ 0,0 });
 	if (Node::getSizeFromShape(input0Shape, error) == 0)
 		return;
@@ -297,11 +304,11 @@ inline void rand2d(typename Node::variable& result, std::array<const Node*, 3> i
 }
 
 template<class Node>
-void sum(typename Node::variable& result, std::array<const Node*, 1> input)
+void sum(typename Node::variable& result, std::array<const Node*, 1> input, sci::string& error)
 {
 	result.reshape({ 1,1 });
 	result[0][0] = 0.0;
-	typename Node::index shape = input[0]->getShape();
+	typename Node::index shape = input[0]->getShape(error);
 	for (size_t i = 0; i < shape[0]; ++i)
 		for (size_t j = 0; j < shape[1]; ++j)
 			result += input[0]->getValue({ i,j });

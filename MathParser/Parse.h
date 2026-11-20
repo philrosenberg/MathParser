@@ -111,7 +111,9 @@ bool parseLine(const sci::string& line, bool skipOutputCalculation, sci::string&
 	if (!isAssignment && !skipOutputCalculation)
 	{
 		sci::ostringstream str;
-		typename VariableStore::node::index shape = node.getShape();
+		typename VariableStore::node::index shape = node.getShape(output);
+		if (!output.empty())
+			return false;
 		size_t size = VariableStore::node::getSizeFromShape(shape, output);
 		if (size == 0) // zero dimensions. Error
 		{
@@ -126,7 +128,7 @@ bool parseLine(const sci::string& line, bool skipOutputCalculation, sci::string&
 			return false;
 		}
 		else if (size == 1)  // scalar
-			str << node.calculate()[0][0];
+			str << node.getValue({ 0,0 });
 		else if (shape[0] == 1) //row
 		{
 			str << sU("{ ") << node.getValue({ 0,0 });

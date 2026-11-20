@@ -43,10 +43,11 @@ public:
 		return false;
 	}
 
-	variable calculate() const
+	variable calculate(sci::string& error) const
 	{
-		getShape(); // this updates the shape
-		variable result(m_shape);
+		getShape(error); // this updates the shape
+		variable result(m_shape); //if there were incompatible shapes, this will be zero size
+
 		for (size_t i = 0; i < m_shape[0]; ++i)
 			for (size_t j = 0; j < m_shape[1]; ++j)
 				result[i][j] = getValue({ i, j });
@@ -60,26 +61,43 @@ public:
 				return false;
 		return true;
 	}
-
-	index getShape() const
+	static index combineShapes(const index &shape1, const index &shape2, sci::string& error)
+	{
+		index result;
+		
+		for (size_t i = 0; i < result.size(); ++i)
+		{
+			if (shape1[i] == shape2[i])
+			{
+				result[i] = shape1[i];
+			}
+			else if (shape1[i] == 0 || shape2[i] == 0)
+			{
+				result[i] = 0;
+				error = sU("empty_variable_error");
+			}
+			else if (shape1[i] == 1)
+				result[i] = shape2[i];
+			else if (shape2[i] == 1)
+				result[i] = shape1[i];
+			else
+			{
+				result[i] = 0;
+				error = sU("incompatible_sizes_error");
+			}
+		}
+		return result;
+	}
+	index getShape(sci::string& error) const
 	{
 		if (m_op == runFunction)
-			m_shape = m_function->getShapeAndCacheIfNeeded();
+			m_shape = m_function->getShapeAndCacheIfNeeded(error);
 		else if (m_op == constantRead)
 			m_shape = m_constant.shape();
 		else if (m_op == nodePassthrough)
-			m_shape = m_nodes[0]->getShape();
+			m_shape = m_nodes[0]->getShape(error);
 		else
-		{
-			index shape1 = m_nodes[0]->getShape();
-			index shape2 = m_nodes[1]->getShape();
-			for (size_t i = 0; i < m_shape.size(); ++i)
-			{
-				m_shape[i] = 0;
-				if (shape1[i] != 0 && shape2[i] != 0)
-					m_shape[i] = std::max(shape1[i], shape2[i]);
-			}
-		}
+			m_shape = combineShapes(m_nodes[0]->getShape(error), m_nodes[1]->getShape(error), error);
 
 		return m_shape;
 	}
@@ -280,8 +298,11 @@ private:
 		else
 		{
 			size_t next = multArray<startIndex + 1>(array, error);
-			if (next > 0 && -1 / next < array[startIndex])
+			if (next > 0 && -1 / next <= array[startIndex])
+			{
 				error = sU("array_too_large_error");
+				return -1; //this guarentees the next level up will generate the same error and return -1. We want to ensure we return nonzero to distinguish between zero size arrays 
+			}
 			return array[startIndex] * next;
 		}
 	}
