@@ -113,7 +113,10 @@ bool parseLine(const sci::string& line, bool skipOutputCalculation, sci::string&
 		sci::ostringstream str;
 		typename VariableStore::node::index shape = node.getShape(output);
 		if (!output.empty())
+		{
+			badLine = line;
 			return false;
+		}
 		size_t size = VariableStore::node::getSizeFromShape(shape, output);
 		if (size == 0) // zero dimensions. Error
 		{

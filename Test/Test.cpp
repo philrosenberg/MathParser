@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include"../MathParser/Parse.h"
+#include<ctime>
 
 template<int N>
 bool test(sci::string expression, sci::string expectedResult, VariableStore<N> &variables, FunctionMultiFactory<VariableStore<N>> &functionFactories)
@@ -15,7 +16,7 @@ bool test(sci::string expression, sci::string expectedResult, VariableStore<N> &
 	parsed = parseLine(expression, false, badExpression, variables, functionFactories, output, isAssignment);
 	if (!parsed)
 	{
-		std::cout << "The expression " << sci::toCodepage(expression) << " did not parse. The reported bad expression was " << sci::toCodepage(badExpression) << std::endl;
+		std::cout << "The expression " << sci::toCodepage(expression) << " did not parse. The reported bad expression was " << sci::toCodepage(badExpression) << ", the error was " << sci::toCodepage(output) << std::endl;
 		return false;
 	}
 	if (output != expectedResult)
@@ -51,6 +52,21 @@ bool testFails(sci::string expression, sci::string expectedBadExpression, sci::s
 		return false;
 	}
 	return true;
+}
+
+template<int N>
+void timeTest(sci::string expression, VariableStore<N>& variables, FunctionMultiFactory<VariableStore<N>>& functionFactories)
+{
+	sci::string badExpression;
+	sci::string output;
+	bool isAssignment;
+	bool parsed;
+
+	auto start = clock();
+	parsed = parseLine(expression, false, badExpression, variables, functionFactories, output, isAssignment);
+	auto end = clock();
+	double seconds = double(end - start) / double(CLOCKS_PER_SEC);
+	std::cout << "The expression " << sci::toCodepage(expression) << " was evaluated in " << seconds << " seconds" << std::endl;
 }
 
 int main()
@@ -164,7 +180,30 @@ int main()
 	success &= testFails(sU("x={1,2},{3,4}"), sU(",{3,4}"), sU("unexpected_characters_after_array_error"), variables, functionFactories);
 	success &= testFails(sU("{1,2}noOperator"), sU("noOperator"), sU("unexpected_characters_after_array_error"), variables, functionFactories);
 
+	//array broadcast tests
+	success &= test(sU("x={1,2,3}"), sU(""), variables, functionFactories);
+	success &= test(sU("y={{0}{3}{6}}"), sU(""), variables, functionFactories);
+	success &= test(sU("z={{1,2,3}{4,5,6}{7,8,9}}"), sU(""), variables, functionFactories);
+	success &= test(sU("x+y"), sU("{ { 1, 2, 3 } { 4, 5, 6 } { 7, 8, 9 } }"), variables, functionFactories);
+	success &= test(sU("y+x"), sU("{ { 1, 2, 3 } { 4, 5, 6 } { 7, 8, 9 } }"), variables, functionFactories);
+	success &= test(sU("x+z"), sU("{ { 2, 4, 6 } { 5, 7, 9 } { 8, 10, 12 } }"), variables, functionFactories);
+	success &= test(sU("z+x"), sU("{ { 2, 4, 6 } { 5, 7, 9 } { 8, 10, 12 } }"), variables, functionFactories);
+	success &= test(sU("y+z"), sU("{ { 1, 2, 3 } { 7, 8, 9 } { 13, 14, 15 } }"), variables, functionFactories);
+	success &= test(sU("z+y"), sU("{ { 1, 2, 3 } { 7, 8, 9 } { 13, 14, 15 } }"), variables, functionFactories);
+	success &= testFails(sU("{{1,2,3}{4,5,6}}+z"), sU("{{1,2,3}{4,5,6}}+z"), sU("incompatible_sizes_error"), variables, functionFactories);
 
+
+	//random 
+	time_t seed1Val = time(nullptr);
+	sci::ostringstream seed1;
+	seed1 << seed1Val;
+	time_t seed2Val = time(nullptr);
+	sci::ostringstream seed2;
+	seed2 << seed2Val;
+
+	success &= test(sU("r1=rand2d(3000,3000,") + seed1.str() + sU(")"), sU(""), variables, functionFactories);
+	success &= test(sU("r2=rand2d(3000,3000,") + seed2.str() + sU(")"), sU(""), variables, functionFactories);
+	//timeTest(sU("r1+r2"), variables, functionFactories);
 
 	if (success)
 		std::cout << "All tests passed" << std::endl;
