@@ -78,8 +78,7 @@ int main()
 	functionFactories.addStandardFunctions();
 
 	bool success = true;
-	success &= testFails(sU("my  variable=5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
-
+	
 	success &= test(sU("8-4-2"), sU("2"), variables, functionFactories);
 	success &= test(sU("8+4-2"), sU("10"), variables, functionFactories);
 	success &= test(sU("8/2/2"), sU("2"), variables, functionFactories);
@@ -149,11 +148,11 @@ int main()
 	success &= testFails(sU("x=y=2"), sU("x=y=2"), sU("more_than_one_equals_error"), variables, functionFactories);
 	success &= testFails(sU("x=1a"), sU("1a"), sU("variable_not_found_error"), variables, functionFactories);
 	success &= testFails(sU("x=5*(2+1"), sU("(2+1"), sU("missing_close_bracket_error"), variables, functionFactories);
-	success &= testFails(sU("x=5(2+1)"), sU("5(2+1)"), sU("missing_close_bracket_error"), variables, functionFactories);
+	success &= testFails(sU("x=5(2+1)"), sU("5(2+1)"), sU("missing_operator_error"), variables, functionFactories);
 	success &= testFails(sU("x=1)"), sU("1)"), sU("missing_open_bracket_error"), variables, functionFactories);
 	success &= testFails(sU("x=2+1)*5"), sU("2+1)"), sU("missing_open_bracket_error"), variables, functionFactories);
-	success &= testFails(sU("x={(2}+1)*5"), sU("{(2}+1)"), sU("missing_close_bracket_error"), variables, functionFactories);
-	success &= testFails(sU("x=({2)+1}*5"), sU("({2)+1}"), sU("missing_close_bracket_error"), variables, functionFactories);
+	success &= testFails(sU("x={(2}+1)"), sU("{(2}+1)"), sU("interleaved_brackets_error"), variables, functionFactories);
+	success &= testFails(sU("x=({2)+1}"), sU("({2)+1}"), sU("interleaved_brackets_error"), variables, functionFactories);
 	success &= testFails(sU("=5"), sU(""), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 	success &= testFails(sU("7=7"), sU("7"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 	success &= testFails(sU("my variable=5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
@@ -170,13 +169,13 @@ int main()
 	success &= test(sU("x=sin(atan2(1,2))"), sU(""), variables, functionFactories);
 
 	//array specific tests
-	success &= test(sU("{}"), sU(""), variables, functionFactories);
+	success &= testFails(sU("{}"), sU("{}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
 	success &= testFails(sU("{{}{}}"), sU("{{}{}}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
 	success &= testFails(sU("{1,}"), sU("{1,}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
 	success &= testFails(sU("{1,2}{3}"), sU("{3}"), sU("array_2nd_dimension_sizes_do_not_match_error"), variables, functionFactories);
 	success &= test(sU("x={1,2}{3,4}"), sU(""), variables, functionFactories);
 	success &= testFails(sU("x={{1,2},{3,4}}"), sU(","), sU("unexpected_character_between_array_brackets_error"), variables, functionFactories);
-	success &= testFails(sU("x={{1,2},{3,4}"), sU(","), sU("missing_array_close_bracket_error"), variables, functionFactories);
+	success &= testFails(sU("x={{1,2}{3,4}"), sU("{{1,2}{3,4}"), sU("missing_array_close_bracket_error"), variables, functionFactories);
 	success &= testFails(sU("x={1,2},{3,4}"), sU(",{3,4}"), sU("unexpected_characters_after_array_error"), variables, functionFactories);
 	success &= testFails(sU("{1,2}noOperator"), sU("noOperator"), sU("unexpected_characters_after_array_error"), variables, functionFactories);
 

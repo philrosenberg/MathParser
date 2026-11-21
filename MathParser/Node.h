@@ -146,23 +146,49 @@ private:
 			//we only have the first element, this is either a value
 			//or a variable or a function
 
-			//check if it's a function by seeing if it contains a bracket
-			size_t bracketIndex = split[0].find(sU('('));
-			if (bracketIndex != sci::string::npos)
+			//check for brackets
+			bool interleaved;
+			size_t openBracketPosition;
+			bool endsWithCloseBracket;
+			bool hasCurlyBrackets;
+			checkBrackets(split[0], interleaved, openBracketPosition, endsWithCloseBracket, hasCurlyBrackets);
+
+			if(interleaved)
 			{
-				if (split[0].back() != sU(')'))
+				badExpression = split[0];
+				error = sU("interleaved_brackets_error");
+				return false;
+			}
+
+			//check if it's a function by seeing if it contains a bracket
+			if (openBracketPosition != sci::string::npos)
+			{
+				if (!endsWithCloseBracket)
 				{
 					badExpression = split[0];
 					error = sU("missing_function_close_bracket_error");
 					return false;
 				}
-				sci::string functionName = split[0].substr(0, bracketIndex);
-				sci::string functionParameters = split[0].substr(bracketIndex + 1, split[0].length() - bracketIndex - 2);
+				sci::string functionName = split[0].substr(0, openBracketPosition);
+				sci::string functionParameters = split[0].substr(openBracketPosition + 1, split[0].length() - openBracketPosition - 2);
 				m_function = functions.getFunction(functionName);
 				if (!m_function)
 				{
 					badExpression = split[0];
-					error = sU("function_not_found_error");
+					//Do a couple more checks to improve the error reporting
+					const Node* node = variables.getVariable(functionName);
+					if(node)
+						error = sU("missing_operator_error");
+					else
+					{
+						std::string codePageExpr = basicAscii(functionName);
+						char* check = nullptr;
+						double value = std::strtod(codePageExpr.c_str(), &check);
+						if (check == codePageExpr.c_str() + codePageExpr.length())
+							error = sU("missing_operator_error");
+						else
+							error = sU("function_not_found_error");
+					}
 					return false;
 				}
 				bool success = m_function->setInputs(functionParameters, badExpression, error, variables, functions);
@@ -185,8 +211,7 @@ private:
 			}
 
 			//check if it's an array value
-			size_t curlyBracketIndex = split[0].find_first_of(sU("{}"));
-			if (curlyBracketIndex != sci::string::npos)
+			if (hasCurlyBrackets)
 			{
 				bool result = parseArray(split[0], badExpression, error, m_constant);
 				if (!result)
@@ -289,6 +314,39 @@ private:
 	mutable index m_shape; //mutable because it is just a cache for the shape, updated when getShape is called to avoid calculating it for every getValue call
 	std::unique_ptr<Function<VariableStore<nDims>>> m_function;
 	decltype(getOp<VariableStore<nDims>>(sci::string())) m_op;
+
+	static void checkBrackets(const sci::string& expression, bool &interleaved, size_t &firstOpenPosition, bool &endsWithClose, bool &hasCurly)
+	{
+		interleaved = false;
+		endsWithClose = false;
+		hasCurly = false;
+
+		size_t firstCurly = sci::string::npos;
+		size_t firstRegular = sci::string::npos;
+		size_t lastCurly = sci::string::npos;
+		size_t lastRegular = sci::string::npos;
+		for (size_t i = 0; i < expression.length(); ++i)
+		{
+			if (expression[i] == sU('{') && firstCurly == sci::string::npos)
+				firstCurly = i;
+			else if (expression[i] == sU('(') && firstRegular == sci::string::npos)
+				firstRegular = i;
+			else if (expression[i] == sU('}'))
+				lastCurly = i;
+			else if (expression[i] == sU(')'))
+				lastRegular = i;
+		}
+
+		firstOpenPosition = firstRegular;
+		if (lastRegular == expression.length() - 1)
+			endsWithClose = true;
+		if (firstCurly != sci::string::npos || lastCurly != sci::string::npos)
+			hasCurly = true;
+		if (firstCurly > firstRegular && firstCurly < lastRegular && lastCurly > lastRegular)
+			interleaved = true;
+		if (firstRegular > firstCurly && firstRegular < lastCurly && lastRegular > lastCurly)
+			interleaved = true;
+	}
 
 	template<int startIndex>
 	static constexpr size_t multArray(const std::array<size_t, nDims> &array, sci::string &error)
