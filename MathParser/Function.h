@@ -12,14 +12,18 @@ public:
 		//split the inputs via commas
 		size_t comma = -1;
 		std::vector<sci::string> expressions;
-		int curlyBracketLevel = 0;
+
+		//curly and regular brackets can both include commas as array or function parameter separators
+		//so only accept commas that are not within brackets.
+		//We don't need to worry about the type of bracket
+		int bracketLevel = 0;
 		for (size_t i = 0; i < inputs.length(); ++i)
 		{
-			if (inputs[i] == sU('{'))
-				++curlyBracketLevel;
-			else if(inputs[i] == sU('}'))
-				--curlyBracketLevel;
-			else if (curlyBracketLevel == 0 && inputs[i] == sU(','))
+			if (inputs[i] == sU('{') || inputs[i] == sU('('))
+				++bracketLevel;
+			else if(inputs[i] == sU('}') || inputs[i] == sU('}'))
+				--bracketLevel;
+			else if (bracketLevel == 0 && inputs[i] == sU(','))
 			{
 				size_t begin = comma + 1;
 				comma = i;
