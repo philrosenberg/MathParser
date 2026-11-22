@@ -21,7 +21,7 @@ public:
 		{
 			if (inputs[i] == sU('{') || inputs[i] == sU('('))
 				++bracketLevel;
-			else if(inputs[i] == sU('}') || inputs[i] == sU('}'))
+			else if(inputs[i] == sU('}') || inputs[i] == sU(')'))
 				--bracketLevel;
 			else if (bracketLevel == 0 && inputs[i] == sU(','))
 			{
