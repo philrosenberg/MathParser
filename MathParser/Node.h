@@ -560,23 +560,34 @@ private:
 		{
 			if (pos == sci::string::npos)
 			{
+				//this means there were not enoght elements in the array
+				//or the last element(s) were blank
 				error = sU("invalid_or_missing_array_element_error");
 				badExpression = str.substr(end);
 				return false;
 			}
 			if (isOpenCurlyBracket(str[pos]))
 				++pos;
-			size_t end = str.find_first_of(sU(",}"), pos);
+			end = str.find_first_of(sU(",}"), pos);
 			codePageStr = basicAscii(str.substr(pos, end - pos));
 			char* check = nullptr;
 			r = std::strtod(codePageStr.c_str(), &check);
 			if (check != codePageStr.c_str() + codePageStr.length() || codePageStr.length() == 0)
 			{
 				error = sU("invalid_or_missing_array_element_error");
-				badExpression = sci::toSci(codePageStr);
+				if (codePageStr.length() == 0)
+				{
+					//try to get a little contect in the bad expression as if it's a missing element
+					//codePageStr is just blank
+					size_t badStart = pos == 0 ? pos : pos - 1;
+					size_t badEnd = end == str.length() ? end : end + 1;
+					badExpression = str.substr(badStart, badEnd - badStart);
+				}
+				else
+					badExpression = str.substr(pos, end - pos);
 				return false;
 			}
-			pos = str.find_first_not_of(sU(",}{ \t"), end + 1);
+			pos = end + 1;
 		}
 		return true;
 	}

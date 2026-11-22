@@ -78,7 +78,7 @@ int main()
 	functionFactories.addStandardFunctions();
 
 	bool success = true;
-	
+
 	success &= test(sU("8-4-2"), sU("2"), variables, functionFactories);
 	success &= test(sU("8+4-2"), sU("10"), variables, functionFactories);
 	success &= test(sU("8/2/2"), sU("2"), variables, functionFactories);
@@ -164,15 +164,18 @@ int main()
 	success &= testFails(sU("my +variable=5"), sU("my+variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 	success &= testFails(sU("x=2 2"), sU("2 2"), sU("missing_operator_error"), variables, functionFactories);
 
-	//check function calls with commas not separating arguments
+	//check function calls with comma containing arguments
 	success &= test(sU("x=sin({1,1})"), sU(""), variables, functionFactories);
 	success &= test(sU("x=sin(atan2(1,2))"), sU(""), variables, functionFactories);
 
 	//array specific tests
 	success &= testFails(sU("{}"), sU("{}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
-	success &= testFails(sU("{{}{}}"), sU("{{}{}}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
-	success &= testFails(sU("{1,}"), sU("{1,}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
+	success &= testFails(sU("{{}{}}"), sU("{}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
+	success &= testFails(sU("{1,}"), sU(",}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
+	success &= testFails(sU("{1,,3}"), sU(",,"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
+	success &= testFails(sU("{,2}"), sU("{,"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
 	success &= testFails(sU("{1,2}{3}"), sU("{3}"), sU("array_2nd_dimension_sizes_do_not_match_error"), variables, functionFactories);
+	success &= testFails(sU("{1}{2,3}"), sU("{2,3}"), sU("array_2nd_dimension_sizes_do_not_match_error"), variables, functionFactories);
 	success &= test(sU("x={1,2}{3,4}"), sU(""), variables, functionFactories);
 	success &= testFails(sU("x={{1,2},{3,4}}"), sU(","), sU("unexpected_character_between_array_brackets_error"), variables, functionFactories);
 	success &= testFails(sU("x={{1,2}{3,4}"), sU("{{1,2}{3,4}"), sU("missing_array_close_bracket_error"), variables, functionFactories);
