@@ -185,6 +185,10 @@ int main()
 	success &= testFails(sU("x={1,2},{3,4}"), sU(",{3,4}"), sU("unexpected_characters_after_array_error"), variables, functionFactories);
 	success &= testFails(sU("{1,2}noOperator"), sU("noOperator"), sU("unexpected_characters_after_array_error"), variables, functionFactories);
 
+	//freeze tests
+	success &= testFails(sU("freeze({1,2, 3} + {4, 5})"), sU("{1,2,3}+{4,5}"), sU("incompatible_sizes_error"), variables, functionFactories);
+
+
 	//array broadcast tests
 	success &= test(sU("x={1,2,3}"), sU(""), variables, functionFactories);
 	success &= test(sU("y={{0}{3}{6}}"), sU(""), variables, functionFactories);

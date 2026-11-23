@@ -36,7 +36,7 @@ public:
 		
 		if (expressions.size() != N)
 		{
-			badExpression = inputs;
+			//badExpression = inputs; //don't set the badExpression - it will get set to the full function call by Node::set
 			error = sU("incorrect_number_of_function_arguments_error");
 			return false;
 		}
@@ -205,8 +205,13 @@ public:
 		bool setInputs(const sci::string inputs, sci::string& badExpression, sci::string& error, const VariableStore& variables, const FunctionMultiFactory<VariableStore>& functions) override
 		{
 			bool result = CommaSeparatedInputsFunction<1, VariableStore>::setInputs(inputs, badExpression, error, variables, functions);
-			if(result)
+			if (result)
+			{
 				m_cache = CommaSeparatedInputsFunction<1, VariableStore>::m_nodes[0]->calculate(error);
+				result = error.empty();
+				if (!result)
+					badExpression = inputs;
+			}
 			return result;
 		}
 		typename VariableStore::node::index getShapeAndCacheIfNeeded(sci::string& error) const override
@@ -310,9 +315,14 @@ inline void rand2d(typename Node::variable& result, std::array<const Node*, 3> i
 template<class Node>
 void sum(typename Node::variable& result, std::array<const Node*, 1> input, sci::string& error)
 {
+	typename Node::index shape = input[0]->getShape(error);
+	if (!error.empty())
+	{
+		result.reshape({ 0,0 });
+		return;
+	}
 	result.reshape({ 1,1 });
 	result[0][0] = 0.0;
-	typename Node::index shape = input[0]->getShape(error);
 	for (size_t i = 0; i < shape[0]; ++i)
 		for (size_t j = 0; j < shape[1]; ++j)
 			result += input[0]->getValue({ i,j });

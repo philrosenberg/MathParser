@@ -200,7 +200,8 @@ private:
 				bool success = m_function->setInputs(functionParameters, badExpression, error, variables, functions);
 				if (!success)
 				{
-					badExpression = split[0];
+					if(badExpression.empty())
+						badExpression = split[0];
 					if(error.empty())
 						error = sU("function_call_failed_error");
 					return false;
