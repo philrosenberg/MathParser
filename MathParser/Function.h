@@ -32,7 +32,8 @@ public:
 		}
 		size_t begin = comma + 1;
 		comma = inputs.length();
-		expressions.push_back(inputs.substr(begin, comma - begin));
+		if(inputs.length() > 0)
+			expressions.push_back(inputs.substr(begin, comma - begin));
 		
 		if (expressions.size() != N)
 		{
@@ -80,7 +81,7 @@ public:
 			typename VariableStore::node::index result;
 			for (size_t i = 0; i < result.size(); ++i)
 				result[i] = 0;
-			error = "empty_variable_error";
+			error = sU("parser_bug_function_of_zero_elements_did_not_override_getShapeAndCacheIfNeeded_error");
 			return result;
 		}
 		typename VariableStore::node::index result;
@@ -98,6 +99,7 @@ public:
 	{}
 };
 
+using Func0Param = double(*)();
 using ElementwiseFunc1Param = double(*)(double);
 using ElementwiseFunc2Param = double(*)(double, double);
 template<size_t N>
@@ -126,6 +128,37 @@ public:
 		Function* makeInstance() const override
 		{
 			return new EasyElementwiseFunction1Param<FUNC, VariableStore>::Function();
+		}
+	};
+};
+
+//this class creates a function that accepts no parameters and returns a scalar
+//to every element of an input.
+template<Func0Param FUNC, class VariableStore>
+class EasyFunction0Param
+{
+public:
+	class Function : public ElementwiseCommaSeparatedInputsFunction<0, VariableStore>
+	{
+	public:
+		virtual typename VariableStore::node::index getShapeAndCacheIfNeeded(sci::string& error) const override
+		{
+			typename VariableStore::node::index result;
+			for (size_t i = 0; i < result.size(); ++i)
+				result[i] = 1;
+			return result;
+		}
+		double getValue(const typename VariableStore::node::index& position) const override
+		{
+			return FUNC();
+		}
+	private:
+	};
+	class Factory : public FunctionFactory<VariableStore>
+	{
+		Function* makeInstance() const override
+		{
+			return new EasyFunction0Param<FUNC, VariableStore>::Function();
 		}
 	};
 };
@@ -259,6 +292,11 @@ inline double max(std::array<double, 2> inputs)
 	return std::max(inputs[0], inputs[1]);
 }
 
+inline double lifetheuniverseandeverything()
+{
+	return 42;
+}
+
 template<class Node>
 inline void rand1d(typename Node::variable& result, std::array<const Node*, 2> input, sci::string& error)
 {
@@ -338,6 +376,7 @@ bool FunctionMultiFactory<VariableStore>::addStandardFunctions()
 		set(sU("asin"), std::make_unique<EasyElementwiseFunction1Param<std::asin, VariableStore>::Factory>()) &&
 		set(sU("atan"), std::make_unique<EasyElementwiseFunction1Param<std::atan, VariableStore>::Factory>()) &&
 		set(sU("atan2"), std::make_unique<EasyElementwiseFunction<2, atan2, VariableStore>::Factory>()) &&
+		set(sU("lifetheuniverseandeverything"), std::make_unique<EasyFunction0Param<lifetheuniverseandeverything, VariableStore>::Factory>()) &&
 		set(sU("cosh"), std::make_unique<EasyElementwiseFunction1Param<std::cosh, VariableStore>::Factory>()) &&
 		set(sU("sinh"), std::make_unique<EasyElementwiseFunction1Param<std::sinh, VariableStore>::Factory>()) &&
 		set(sU("tanh"), std::make_unique<EasyElementwiseFunction1Param<std::tanh, VariableStore>::Factory>()) &&

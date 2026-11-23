@@ -79,6 +79,8 @@ int main()
 
 	bool success = true;
 
+	success &= testFails(sU("sin()"), sU("sin()"), sU("incorrect_number_of_function_arguments_error"), variables, functionFactories);
+
 	success &= test(sU("8-4-2"), sU("2"), variables, functionFactories);
 	success &= test(sU("8+4-2"), sU("10"), variables, functionFactories);
 	success &= test(sU("8/2/2"), sU("2"), variables, functionFactories);
@@ -104,6 +106,9 @@ int main()
 	success &= test(sU("3--1"), sU("4"), variables, functionFactories);
 	success &= test(sU("3+--1"), sU("4"), variables, functionFactories);
 	success &= test(sU("3-+-1"), sU("4"), variables, functionFactories);
+	success &= test(sU("-3*2+1"), sU("-5"), variables, functionFactories);
+	success &= test(sU("1e-3+2"), sU("2.001"), variables, functionFactories);
+	success &= test(sU("2^-3"), sU("0.125"), variables, functionFactories);
 	success &= test(sU("x="), sU(""), variables, functionFactories);
 	success &= test(sU("x=sin(1)"), sU(""), variables, functionFactories);
 	success &= test(sU("x=atan2(1,2)"), sU(""), variables, functionFactories);
@@ -174,7 +179,9 @@ int main()
 	success &= test(sU("atan2(sin(0),2)"), sU("0"), variables, functionFactories);
 	success &= test(sU("hypot(atan2(0,2),3)"), sU("3"), variables, functionFactories);
 	success &= testFails(sU("sin()"), sU("sin()"), sU("incorrect_number_of_function_arguments_error"), variables, functionFactories);
-	success &= testFails(sU("atan2(1,)"), sU("atan2(1,)"), sU("incorrect_number_of_function_arguments_error"), variables, functionFactories);
+	success &= testFails(sU("atan2(1,)"), sU("atan2(1,)"), sU("empty_variable_error"), variables, functionFactories);
+	//and zero argument functions
+	success &= test(sU("lifetheuniverseandeverything()"), sU("42"), variables, functionFactories);
 
 	//array specific tests
 	success &= testFails(sU("{}"), sU("{}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
@@ -227,9 +234,6 @@ int main()
 	success &= test(sU("shapeA={1,2,3}"), sU(""), variables, functionFactories);
 	success &= testFails(sU("shapeB"), sU("shapeB"), sU("incompatible_sizes_error"), variables, functionFactories);
 
-	//Scientific notation and negative exponents
-	success &= test(sU("1e-3+2"), sU("2.001"), variables, functionFactories);
-	success &= test(sU("2^-3"), sU("0.125"), variables, functionFactories);
 
 	success &= testFails(sU("sum({1,2,3}+{4,5})"),
 		sU("sum({1,2,3}+{4,5})"),

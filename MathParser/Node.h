@@ -704,8 +704,8 @@ private:
 
 			else if (isPlusMinus(expression[i]) && curlyBracketCount == 0)
 			{
-				//check this isn't a sign change after a multiply or divide or part of an exponent
-				if (i > 0 && (isMultiply(expression[i - 1]) || isDivide(expression[i - 1]) || isExp(expression[i - 1])))
+				//check this isn't a sign change after a multiply or divide or power or part of an exponent
+				if (i > 0 && (isMultiply(expression[i - 1]) || isDivide(expression[i - 1]) || isPower(expression[i - 1]) || isExp(expression[i - 1])))
 				{
 					//do nothing, don't split here
 				}
