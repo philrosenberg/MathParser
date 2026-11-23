@@ -193,8 +193,8 @@ void beginStreamLoop(std::istream& sin, std::ostream& sout, VariableStore& varia
 	while (1)
 	{
 		sout << "math> ";
-		std::getline(sin, line);
-		if (line == "exit")
+		bool goodLine = std::getline(sin, line);
+		if (!goodLine || line == "exit")
 			break;
 		bool good = parseLine(sci::toSci(line), false, badExpression, variables, functionFactories, output, isAssignment);
 		if (output.length() > 0)
@@ -219,8 +219,8 @@ void beginStreamLoop(std::wistream& sin, std::wostream& sout, VariableStore& var
 	while (1)
 	{
 		sout << "math> ";
-		std::getline(sin, line);
-		if (line == L"exit")
+		bool goodLine = std::getline(sin, line);
+		if (!goodLine || line == L"exit")
 			break;
 		bool good = parseLine(sci::toSci(line), false, badExpression, variables, functionFactories, output, isAssignment);
 		if (output.length() > 0)
