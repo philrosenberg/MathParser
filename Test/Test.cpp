@@ -156,7 +156,10 @@ int main()
 	success &= testFails(sU("=5"), sU(""), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 	success &= testFails(sU("7=7"), sU("7"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 	success &= testFails(sU("my variable=5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
-	//check whitesapce removal
+	success &= test(sU(""), sU(""), variables, functionFactories);
+	success &= test(sU(" "), sU(""), variables, functionFactories);
+	success &= test(sU("\t"), sU(""), variables, functionFactories);
+	//check whitespace removal
 	success &= testFails(sU(" my variable=5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 	success &= testFails(sU("my  variable=5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);
 	success &= testFails(sU("my variable =5"), sU("my variable"), sU("invalid_characters_before_equals_error"), variables, functionFactories);

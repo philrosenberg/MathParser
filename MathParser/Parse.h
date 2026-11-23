@@ -14,6 +14,8 @@ template<class VariableStore>
 bool parseLine(const sci::string& line, sci::string& badLine, sci::string &error, VariableStore* variableDestination, const VariableStore& variableSource, const FunctionMultiFactory<VariableStore>& functions, typename VariableStore::node& node, bool& isAssignment)
 {
 	isAssignment = false;
+	badLine.clear();
+	error.clear();
 
 	//remove whitespace and check for equals
 	sci::string trimmedLine;
@@ -51,8 +53,11 @@ bool parseLine(const sci::string& line, sci::string& badLine, sci::string &error
 		}
 	}
 	//there could be a single trailing space, remove it if so
-	if (trimmedLine.back() == sU(' ') || trimmedLine.back() == sU('\t'))
+	if ( !trimmedLine.empty() && (trimmedLine.back() == sU(' ') || trimmedLine.back() == sU('\t')))
 		trimmedLine.erase(trimmedLine.end() - 1);
+
+	if (trimmedLine.empty())
+		return true;
 
 	if (equalsCount > 1)
 	{
@@ -110,6 +115,9 @@ bool parseLine(const sci::string& line, bool skipOutputCalculation, sci::string&
 		return false;
 	if (!isAssignment && !skipOutputCalculation)
 	{
+		if (node.isNull())
+			return true; //empty line. Not an error, but we don't have anything else to do
+
 		sci::ostringstream str;
 		typename VariableStore::node::index shape = node.getShape(output);
 		if (!output.empty())

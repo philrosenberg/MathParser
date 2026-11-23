@@ -96,6 +96,8 @@ public:
 			m_shape = m_constant.shape();
 		else if (m_op == nodePassthrough)
 			m_shape = m_nodes[0]->getShape(error);
+		else if (m_op == nullOperator)
+			; // the shape was already set to zero during construction
 		else
 			m_shape = combineShapes(m_nodes[0]->getShape(error), m_nodes[1]->getShape(error), error);
 
@@ -108,6 +110,10 @@ public:
 	static constexpr size_t getSizeFromShape(const index &shape, sci::string& error)
 	{
 		return multArray<0>(shape, error);
+	}
+	bool constexpr isNull() const
+	{
+		return m_op == nullOperator;
 	}
 private:
 	//set is private to restrict the callers. This is because expression must have
