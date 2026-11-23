@@ -123,13 +123,15 @@ private:
 	bool set(const sci::string& expression, sci::string& badExpression, sci::string &error, const VariableStore<nDims>& variables, const FunctionMultiFactory<VariableStore<nDims>>& functions)
 	{
 		error.clear();
-		//clear the subnodes
+		//clear the nodes contents
 		m_ownedNodes[0].reset(nullptr);
 		m_ownedNodes[1].reset(nullptr);
 		m_nodes[0] = nullptr;
 		m_nodes[1] = nullptr;
 		m_function.reset(nullptr);
 		m_constant.reshape({ 0,0 });
+		m_op = &nullOperator<VariableStore<nDims>>;
+		m_shape.fill(0);
 		m_expression = expression;
 		badExpression.clear();
 
