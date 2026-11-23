@@ -170,6 +170,11 @@ int main()
 	//check function calls with comma containing arguments
 	success &= test(sU("x=sin({1,1})"), sU(""), variables, functionFactories);
 	success &= test(sU("x=sin(atan2(1,2))"), sU(""), variables, functionFactories);
+	//and some more nested function tests
+	success &= test(sU("atan2(sin(0),2)"), sU("0"), variables, functionFactories);
+	success &= test(sU("hypot(atan2(0,2),3)"), sU("3"), variables, functionFactories);
+	success &= testFails(sU("sin()"), sU("sin()"), sU("incorrect_number_of_function_arguments_error"), variables, functionFactories);
+	success &= testFails(sU("atan2(1,)"), sU("atan2(1,)"), sU("incorrect_number_of_function_arguments_error"), variables, functionFactories);
 
 	//array specific tests
 	success &= testFails(sU("{}"), sU("{}"), sU("invalid_or_missing_array_element_error"), variables, functionFactories);
@@ -186,8 +191,11 @@ int main()
 	success &= testFails(sU("{1,2}noOperator"), sU("noOperator"), sU("unexpected_characters_after_array_error"), variables, functionFactories);
 
 	//freeze tests
+	success &= test(sU("freezeX=2"), sU(""), variables, functionFactories);
+	success &= test(sU("freezeY=freeze(freezeX)"), sU(""), variables, functionFactories);
+	success &= test(sU("freezeX=3"), sU(""), variables, functionFactories);
+	success &= test(sU("freezeY"), sU("2"), variables, functionFactories);
 	success &= testFails(sU("freeze({1,2, 3} + {4, 5})"), sU("{1,2,3}+{4,5}"), sU("incompatible_sizes_error"), variables, functionFactories);
-
 
 	//array broadcast tests
 	success &= test(sU("x={1,2,3}"), sU(""), variables, functionFactories);
@@ -201,6 +209,31 @@ int main()
 	success &= test(sU("z+y"), sU("{ { 1, 2, 3 } { 7, 8, 9 } { 13, 14, 15 } }"), variables, functionFactories);
 	success &= testFails(sU("{{1,2,3}{4,5,6}}+z"), sU("{{1,2,3}{4,5,6}}+z"), sU("incompatible_sizes_error"), variables, functionFactories);
 
+	//Live dependency invalidation
+	success &= test(sU("liveX=2"), sU(""), variables, functionFactories);
+	success &= test(sU("liveY=sin(liveX)"), sU(""), variables, functionFactories);
+	success &= testFails(sU("liveX=3+"), sU("3+"), sU("second_operand_missing_error"), variables, functionFactories);
+	success &= testFails(sU("liveY"), sU("liveY"), sU("empty_variable_error"), variables, functionFactories);
+
+	//Dynamic array shape changes
+	success &= test(sU("shapeX={1,2}"), sU(""), variables, functionFactories);
+	success &= test(sU("shapeY=shapeX+1"), sU(""), variables, functionFactories);
+	success &= test(sU("shapeX={1,2,3}"), sU(""), variables, functionFactories);
+	success &= test(sU("shapeY"), sU("{ 2, 3, 4 }"), variables, functionFactories);
+
+	//Dynamic shape incompatibility
+	success &= test(sU("shapeA={1,2}"), sU(""), variables, functionFactories);
+	success &= test(sU("shapeB=shapeA+{3,4}"), sU(""), variables, functionFactories);
+	success &= test(sU("shapeA={1,2,3}"), sU(""), variables, functionFactories);
+	success &= testFails(sU("shapeB"), sU("shapeB"), sU("incompatible_sizes_error"), variables, functionFactories);
+
+	//Scientific notation and negative exponents
+	success &= test(sU("1e-3+2"), sU("2.001"), variables, functionFactories);
+	success &= test(sU("2^-3"), sU("0.125"), variables, functionFactories);
+
+	success &= testFails(sU("sum({1,2,3}+{4,5})"),
+		sU("sum({1,2,3}+{4,5})"),
+		sU("incompatible_sizes_error"), variables, functionFactories);
 
 	//random 
 	time_t seed1Val = time(nullptr);
