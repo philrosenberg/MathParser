@@ -2,6 +2,14 @@
 #include"FunctionBase.h"
 #include"Node.h"
 
+size_t doubleToSize(double d, sci::string& error)
+{
+	if (d >= 0.0 && d < double(size_t(-1)))
+		return size_t(d);
+	error = sU("invalid_size_error");
+	return size_t(-1);
+}
+
 //this is a function which accepts N expressions, each separated by a comma. Each expression will be converted to a node
 template<size_t N, class VariableStore>
 class CommaSeparatedInputsFunction : public Function<VariableStore>
@@ -310,9 +318,13 @@ inline void rand1d(typename Node::variable& result, std::array<const Node*, 2> i
 		return;
 	if (Node::getSizeFromShape(input1Shape, error) == 0)
 		return;
-	size_t size = size_t(input[0]->getValue({ 0,0 }));
+	size_t size = doubleToSize(input[0]->getValue({ 0,0 }), error);
+	if (!error.empty())
+		return;
 	result.reshape({ size, 1 });
-	srand((unsigned int)(input[1]->getValue({ 0,0 })));
+	srand((unsigned int)doubleToSize(input[1]->getValue({ 0,0 }), error));
+	if (!error.empty())
+		return;
 	for (auto& r : result)
 		r = rand() / (double)(RAND_MAX);
 }
@@ -334,8 +346,12 @@ inline void rand2d(typename Node::variable& result, std::array<const Node*, 3> i
 		return;
 	if (Node::getSizeFromShape(input2Shape, error) == 0)
 		return;
-	size_t size0 = size_t(input[0]->getValue({ 0,0 }));
-	size_t size1 = size_t(input[1]->getValue({ 0,0 }));
+	size_t size0 = doubleToSize(input[0]->getValue({ 0,0 }), error);
+	if (!error.empty())
+		return;
+	size_t size1 = doubleToSize(input[1]->getValue({ 0,0 }), error);
+	if (!error.empty())
+		return;
 	if (size1 != 0 && -1 / size1 < size0)
 	{
 		//we have asked for an array bigger than is representable
@@ -345,7 +361,9 @@ inline void rand2d(typename Node::variable& result, std::array<const Node*, 3> i
 		return;
 	}
 	result.reshape({ size0, size1 });
-	srand((unsigned int)(input[2]->getValue({ 0,0 })));
+	srand((unsigned int)doubleToSize(input[2]->getValue({ 0,0 }), error));
+	if (!error.empty())
+		return;
 	for (auto& r : result)
 		r = rand() / (double)(RAND_MAX);
 }

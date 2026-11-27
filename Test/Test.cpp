@@ -79,7 +79,7 @@ int main()
 
 	bool success = true;
 
-	success &= testFails(sU("sin()"), sU("sin()"), sU("incorrect_number_of_function_arguments_error"), variables, functionFactories);
+	success &= testFails(sU("rand2d(1.0/0.0,1,0)"), sU("rand2d(1.0/0.0,1,0)"), sU("invalid_size_error"), variables, functionFactories);
 
 	success &= test(sU("8-4-2"), sU("2"), variables, functionFactories);
 	success &= test(sU("8+4-2"), sU("10"), variables, functionFactories);
@@ -238,6 +238,11 @@ int main()
 	success &= testFails(sU("sum({1,2,3}+{4,5})"),
 		sU("sum({1,2,3}+{4,5})"),
 		sU("incompatible_sizes_error"), variables, functionFactories);
+
+	//size check in random
+	success &= testFails(sU("rand2d(1.0/0.0,1,0)"), sU("rand2d(1.0/0.0,1,0)"), sU("invalid_size_error"), variables, functionFactories);
+	//check whitespace removal inside function arguments
+	success &= testFails(sU("rand2d(1.0 /0.0,1, 0)"), sU("rand2d(1.0/0.0,1,0)"), sU("invalid_size_error"), variables, functionFactories);
 
 	//random 
 	time_t seed1Val = time(nullptr);
